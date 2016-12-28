@@ -38,7 +38,7 @@ object FetchAllApp extends App {
     }
   }
 
-  def atomistDependencies: File => Seq[IntraOrgDependency] = { projectDir: File =>
+  def intraOrgDependencies: File => Seq[IntraOrgDependency] = { projectDir: File =>
     val pom = projectDir.listFiles().toList.find(_.getName == "pom.xml").getOrElse {
       throw new RuntimeException(s"No pom.xml found in ${projectDir.getName}")
     }
@@ -49,20 +49,20 @@ object FetchAllApp extends App {
 
     def interpretDependencyNode(node: Node): IntraOrgDependency = {
       val childName = (node \ "artifactId").text
-      val scope = Option((node \ "scope")).map(_.text)
+      val scope = (node \ "scope").text
       println(s"dep $childName has scope $scope")
-      IntraOrgDependency(parentName, childName, scope)
+      IntraOrgDependency(parentName, childName, if(scope.isEmpty) scala.None else Some(scope))
     }
     atomistDeps.map(interpretDependencyNode)
   }
 
-  val dependenciesOf: InOrgProject => Seq[IntraOrgDependency] = bringDown andThen atomistDependencies
+  val dependenciesOf: InOrgProject => Seq[IntraOrgDependency] = bringDown andThen intraOrgDependencies
 
   case class IntraOrgDependency(parent: InOrgProject, child:InOrgProject, scope: Option[String]) extends Edge[InOrgProject] {
     val label = scope
   }
 
-  def atomistDependencies(startingProject: InOrgProject): Seq[IntraOrgDependency] ={
+  def intraOrgDependencies(startingProject: InOrgProject): Seq[IntraOrgDependency] ={
 
     def go(allDeps: Map[InOrgProject, Seq[IntraOrgDependency]], investigate: List[InOrgProject]): Map[InOrgProject, Seq[IntraOrgDependency]] = {
       if(investigate.isEmpty)
@@ -82,7 +82,7 @@ object FetchAllApp extends App {
   }
 
 
-  val edges = atomistDependencies(StartingProject)
+  val edges = intraOrgDependencies(StartingProject)
   val r = GraphViz.makeAPicture(OutputName, edges, GraphViz.dashesToUnderscores)
   println(s"There is a picture for you in ${r.getName}")
 
@@ -109,8 +109,12 @@ object GraphViz {
     s"digraph $name " + formattedEdges.mkString("{\n", "\n", "\n}")
   }
 
-  def formatEdge[A](toGraphVizId: A => String)(e: Edge[A]): String =
-    s"${toGraphVizId(e.parent)} -> ${toGraphVizId(e.child)};"
+  def formatEdge[A](toGraphVizId: A => String)(e: Edge[A]): String = {
+    val labelText = e.label.map { l =>
+      s""" [label="$l"]"""
+    }.getOrElse("")
+    s"${toGraphVizId(e.parent)} -> ${toGraphVizId(e.child)}$labelText;"
+  }
 
   def dashesToUnderscores(in: String): String = {
     in.replace('-','_')
