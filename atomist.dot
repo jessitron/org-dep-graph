@@ -1,0 +1,11 @@
+digraph atomist {
+rug_cli -> artifact_source;
+rug_cli -> rug_resolver;
+rug_cli -> rug;
+rug -> artifact_source;
+rug -> rug_compiler;
+rug -> rug_typescript_compiler;
+rug_resolver -> rug;
+rug_typescript_compiler -> rug_compiler;
+rug_compiler -> artifact_source;
+}
