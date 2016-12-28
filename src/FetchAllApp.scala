@@ -2,6 +2,8 @@ import java.io.File
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Paths}
 
+import GraphViz.Edge
+
 import scala.xml.XML
 
 object FetchAllApp extends App {
@@ -36,39 +38,44 @@ object FetchAllApp extends App {
     }
   }
 
-  def atomistDependencies: File => Seq[AtomistProject] = { projectDir : File =>
+  def atomistDependencies: File => Seq[AtomistDependency] = { projectDir : File =>
     val pom = projectDir.listFiles().toList.find(_.getName == "pom.xml").getOrElse { throw new RuntimeException(s"No pom.xml found in ${projectDir.getName}")}
     val projectXml = XML.loadFile(pom)
+    val parentName = (projectXml \ "artifactId").text
     val deps = projectXml \ "dependencies" \ "dependency"
     val atomistDeps = deps.filter(node => (node \ "groupId").text == MavenGroup)
-    atomistDeps.map(_ \ "artifactId").map(_.text)
+    atomistDeps.map(_ \ "artifactId").map(_.text).map {childName =>
+      AtomistDependency(parentName, childName, None)
+    }
   }
 
-  val dependenciesOf: AtomistProject => Seq[AtomistProject] = bringDown andThen atomistDependencies
+  val dependenciesOf: AtomistProject => Seq[AtomistDependency] = bringDown andThen atomistDependencies
 
-  type AtomistDependency = (AtomistProject, AtomistProject)
+  case class AtomistDependency(parent: AtomistProject, child:AtomistProject, scope: Option[String]) extends Edge[AtomistProject] {
+    val label = scope
+  }
 
   def atomistDependencies(startingProject: AtomistProject): Seq[AtomistDependency] ={
 
-    def go(allDeps: Map[AtomistProject, Seq[AtomistProject]], investigate: List[AtomistProject]): Map[AtomistProject, Seq[AtomistProject]] = {
+    def go(allDeps: Map[AtomistProject, Seq[AtomistDependency]], investigate: List[AtomistProject]): Map[AtomistProject, Seq[AtomistDependency]] = {
       if(investigate.isEmpty)
         allDeps
-    else
+      else
         {
           val next :: rest = investigate
           // could optimize by checking whether next is already in the map
           val deps = dependenciesOf(next)
-          go(allDeps + (next -> deps), rest ++ deps)
+          go(allDeps + (next -> deps), rest ++ deps.map(_.child))
         }
     }
 
     val allDeps = go(Map(), List(startingProject))
 
-    allDeps.toSeq.flatMap { case (parent, deps) => deps.map(parent -> _) }
+    allDeps.toSeq.flatMap { case (_parent, deps) => deps }
   }
 
 
-  val edges = atomistDependencies(StartingProject).map(GraphViz.tupleToEdge)
+  val edges = atomistDependencies(StartingProject)
   val r = GraphViz.makeAPicture(OutputName, edges, GraphViz.dashesToUnderscores)
   println(s"There is a picture for you in ${r.getName}")
 
