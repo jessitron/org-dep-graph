@@ -68,16 +68,35 @@ object FetchAllApp extends App {
   }
 
 
-  val r = GraphViz.makeAPicture(OutputName, atomistDependencies(StartingProject), GraphViz.dashesToUnderscores)
+  val edges = atomistDependencies(StartingProject).map(GraphViz.tupleToEdge)
+  val r = GraphViz.makeAPicture(OutputName, edges, GraphViz.dashesToUnderscores)
   println(s"There is a picture for you in ${r.getName}")
 
 }
 
 object GraphViz {
-  def dag[A](name: String, edges: Seq[(A,A)], toGraphVizId: A => String): String = {
-    val formattedEdges = edges.map{ case (p, c) => s"${toGraphVizId(p)} -> ${toGraphVizId(c)};"}
+
+  def tupleToEdge[A](tuple: (A,A)): Edge[A] = {
+    new Edge[A] {
+      val parent = tuple._1
+      val child = tuple._2
+      val label = None
+    }
+  }
+
+  trait Edge[A] {
+    def parent: A
+    def child: A
+    def label: Option[String]
+  }
+
+  def dag[A](name: String, edges: Seq[Edge[A]], toGraphVizId: A => String): String = {
+    val formattedEdges = edges.map(formatEdge(toGraphVizId))
     s"digraph $name " + formattedEdges.mkString("{\n", "\n", "\n}")
   }
+
+  def formatEdge[A](toGraphVizId: A => String)(e: Edge[A]): String =
+    s"${toGraphVizId(e.parent)} -> ${toGraphVizId(e.child)};"
 
   def dashesToUnderscores(in: String): String = {
     in.replace('-','_')
@@ -85,7 +104,7 @@ object GraphViz {
 
   import sys.process._
 
-  def makeAPicture[A](name: String, edges: Seq[(A,A)], toGraphVizId: A => String): File = {
+  def makeAPicture[A](name: String, edges: Seq[Edge[A]], toGraphVizId: A => String): File = {
     val dotText = dag(name, edges, toGraphVizId)
     val dotFile = s"$name.dot"
     Files.write(Paths.get(dotFile), dotText.getBytes(StandardCharsets.UTF_8))
