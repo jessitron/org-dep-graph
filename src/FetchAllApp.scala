@@ -35,8 +35,12 @@ object FetchAllApp extends App {
   def bringDown: InOrgProject => File = { project =>
     // idempotent
     val existingDir = new File(project)
-    if (existingDir.isDirectory)
+    if (existingDir.isDirectory) {
+      println(s"fetching in $project")
+      val fetchExitCode = Seq("git", "-C", existingDir.getPath, "fetch").!
+      if(fetchExitCode != 0) throw new RuntimeException(s"Found project $project in ${existingDir.getPath} but could not fetch there")
       existingDir
+    }
     else {
       val gitUrl = s"$GitHubUrl$project"
       val exitCode = Seq("git", "clone", gitUrl).!
@@ -75,9 +79,12 @@ object FetchAllApp extends App {
         allDeps
       else {
         val next :: rest = investigate
-        // could optimize by checking whether next is already in the map
-        val deps = dependenciesOf(next)
-        go(allDeps + (next -> deps), rest ++ deps.map(_.child))
+        if(allDeps.contains(next))
+          go(allDeps, rest)
+        else {
+          val deps = dependenciesOf(next)
+          go(allDeps + (next -> deps), rest ++ deps.map(_.child))
+        }
       }
     }
 
@@ -89,7 +96,7 @@ object FetchAllApp extends App {
 
   val edges = intraOrgDependencies(StartingProject)
   val r = GraphViz.makeAPicture(OutputName, edges, GraphViz.dashesToUnderscores)
-  println(s"There is a picture for you in ${r.getName}")
+  println(s"There is a picture for you in ${r.getAbsolutePath}")
 
 }
 
@@ -125,7 +132,6 @@ object GraphViz {
   }
 
   def formatEdge[A](toGraphVizId: A => String)(e: Edge[A]): String = {
-    println(s"style is ${e.style}")
     val modifiers =
       e.label.map { l => s"""label="$l"""" } ++
         e.style.map { s => s"""style="${s.toString.toLowerCase}"""" }
