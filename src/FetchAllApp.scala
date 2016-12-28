@@ -4,7 +4,7 @@ import java.nio.file.{Files, Paths}
 
 import GraphViz.Edge
 
-import scala.xml.XML
+import scala.xml.{Node, XML}
 
 object FetchAllApp extends App {
 
@@ -38,15 +38,20 @@ object FetchAllApp extends App {
     }
   }
 
-  def atomistDependencies: File => Seq[AtomistDependency] = { projectDir : File =>
-    val pom = projectDir.listFiles().toList.find(_.getName == "pom.xml").getOrElse { throw new RuntimeException(s"No pom.xml found in ${projectDir.getName}")}
+  def atomistDependencies: File => Seq[AtomistDependency] = { projectDir: File =>
+    val pom = projectDir.listFiles().toList.find(_.getName == "pom.xml").getOrElse {
+      throw new RuntimeException(s"No pom.xml found in ${projectDir.getName}")
+    }
     val projectXml = XML.loadFile(pom)
     val parentName = (projectXml \ "artifactId").text
     val deps = projectXml \ "dependencies" \ "dependency"
     val atomistDeps = deps.filter(node => (node \ "groupId").text == MavenGroup)
-    atomistDeps.map(_ \ "artifactId").map(_.text).map {childName =>
+
+    def interpretDependencyNode(node: Node): AtomistDependency = {
+      val childName = (node \ "artifactId").text
       AtomistDependency(parentName, childName, None)
     }
+    atomistDeps.map(interpretDependencyNode)
   }
 
   val dependenciesOf: AtomistProject => Seq[AtomistDependency] = bringDown andThen atomistDependencies
