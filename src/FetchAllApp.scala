@@ -50,7 +50,6 @@ object FetchAllApp extends App {
     def interpretDependencyNode(node: Node): IntraOrgDependency = {
       val childName = (node \ "artifactId").text
       val scope = (node \ "scope").text
-      println(s"dep $childName has scope $scope")
       IntraOrgDependency(parentName, childName, if(scope.isEmpty) scala.None else Some(scope))
     }
     atomistDeps.map(interpretDependencyNode)
@@ -98,10 +97,15 @@ object GraphViz {
     }
   }
 
+  sealed trait LineStyle
+  case object Dashed extends LineStyle
+  case object Dotted extends LineStyle
+
   trait Edge[A] {
     def parent: A
     def child: A
     def label: Option[String]
+    def style: Option[LineStyle] = None
   }
 
   def dag[A](name: String, edges: Seq[Edge[A]], toGraphVizId: A => String): String = {
@@ -110,10 +114,10 @@ object GraphViz {
   }
 
   def formatEdge[A](toGraphVizId: A => String)(e: Edge[A]): String = {
-    val labelText = e.label.map { l =>
-      s""" [label="$l"]"""
-    }.getOrElse("")
-    s"${toGraphVizId(e.parent)} -> ${toGraphVizId(e.child)}$labelText;"
+    val modifiers =
+      e.label.map{ l => s"""label="$l""""} ++
+      e.style.map {s => s"""style="${s.toString.toLowerCase}""""}
+    s"${toGraphVizId(e.parent)} -> ${toGraphVizId(e.child)} ${modifiers.mkString("[", ",", "]")};"
   }
 
   def dashesToUnderscores(in: String): String = {
