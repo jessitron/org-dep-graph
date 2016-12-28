@@ -2,7 +2,7 @@ import java.io.File
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Paths}
 
-import GraphViz.Edge
+import GraphViz.{Dashed, Dotted, Edge}
 
 import scala.xml.{Node, XML}
 
@@ -17,6 +17,15 @@ object FetchAllApp extends App {
 
 
   type InOrgProject = String
+
+  case class IntraOrgDependency(parent: InOrgProject, child: InOrgProject, scope: Option[String]) extends Edge[InOrgProject] {
+    val label = scope
+    override def style =
+      scope.map {
+        case "test" => Dashed
+        case "provided" => Dotted
+      }
+  }
 
   /**
     * Clone a repo in the current directory
@@ -50,29 +59,26 @@ object FetchAllApp extends App {
     def interpretDependencyNode(node: Node): IntraOrgDependency = {
       val childName = (node \ "artifactId").text
       val scope = (node \ "scope").text
-      IntraOrgDependency(parentName, childName, if(scope.isEmpty) scala.None else Some(scope))
+      IntraOrgDependency(parentName, childName, if (scope.isEmpty) scala.None else Some(scope))
     }
+
     atomistDeps.map(interpretDependencyNode)
   }
 
   val dependenciesOf: InOrgProject => Seq[IntraOrgDependency] = bringDown andThen intraOrgDependencies
 
-  case class IntraOrgDependency(parent: InOrgProject, child:InOrgProject, scope: Option[String]) extends Edge[InOrgProject] {
-    val label = scope
-  }
 
-  def intraOrgDependencies(startingProject: InOrgProject): Seq[IntraOrgDependency] ={
+  def intraOrgDependencies(startingProject: InOrgProject): Seq[IntraOrgDependency] = {
 
     def go(allDeps: Map[InOrgProject, Seq[IntraOrgDependency]], investigate: List[InOrgProject]): Map[InOrgProject, Seq[IntraOrgDependency]] = {
-      if(investigate.isEmpty)
+      if (investigate.isEmpty)
         allDeps
-      else
-        {
-          val next :: rest = investigate
-          // could optimize by checking whether next is already in the map
-          val deps = dependenciesOf(next)
-          go(allDeps + (next -> deps), rest ++ deps.map(_.child))
-        }
+      else {
+        val next :: rest = investigate
+        // could optimize by checking whether next is already in the map
+        val deps = dependenciesOf(next)
+        go(allDeps + (next -> deps), rest ++ deps.map(_.child))
+      }
     }
 
     val allDeps = go(Map(), List(startingProject))
@@ -89,7 +95,7 @@ object FetchAllApp extends App {
 
 object GraphViz {
 
-  def tupleToEdge[A](tuple: (A,A)): Edge[A] = {
+  def tupleToEdge[A](tuple: (A, A)): Edge[A] = {
     new Edge[A] {
       val parent = tuple._1
       val child = tuple._2
@@ -98,13 +104,18 @@ object GraphViz {
   }
 
   sealed trait LineStyle
+
   case object Dashed extends LineStyle
+
   case object Dotted extends LineStyle
 
   trait Edge[A] {
     def parent: A
+
     def child: A
+
     def label: Option[String]
+
     def style: Option[LineStyle] = None
   }
 
@@ -114,14 +125,15 @@ object GraphViz {
   }
 
   def formatEdge[A](toGraphVizId: A => String)(e: Edge[A]): String = {
+    println(s"style is ${e.style}")
     val modifiers =
-      e.label.map{ l => s"""label="$l""""} ++
-      e.style.map {s => s"""style="${s.toString.toLowerCase}""""}
+      e.label.map { l => s"""label="$l"""" } ++
+        e.style.map { s => s"""style="${s.toString.toLowerCase}"""" }
     s"${toGraphVizId(e.parent)} -> ${toGraphVizId(e.child)} ${modifiers.mkString("[", ",", "]")};"
   }
 
   def dashesToUnderscores(in: String): String = {
-    in.replace('-','_')
+    in.replace('-', '_')
   }
 
   import sys.process._
