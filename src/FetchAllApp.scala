@@ -16,14 +16,14 @@ object FetchAllApp extends App {
   val OutputName = "atomist"
 
 
-  type AtomistProject = String
+  type InOrgProject = String
 
   /**
     * Clone a repo in the current directory
     *
     * @return the cloned directory as a File
     */
-  def bringDown: AtomistProject => File = { project =>
+  def bringDown: InOrgProject => File = { project =>
     // idempotent
     val existingDir = new File(project)
     if (existingDir.isDirectory)
@@ -38,7 +38,7 @@ object FetchAllApp extends App {
     }
   }
 
-  def atomistDependencies: File => Seq[AtomistDependency] = { projectDir: File =>
+  def atomistDependencies: File => Seq[IntraOrgDependency] = { projectDir: File =>
     val pom = projectDir.listFiles().toList.find(_.getName == "pom.xml").getOrElse {
       throw new RuntimeException(s"No pom.xml found in ${projectDir.getName}")
     }
@@ -47,22 +47,22 @@ object FetchAllApp extends App {
     val deps = projectXml \ "dependencies" \ "dependency"
     val atomistDeps = deps.filter(node => (node \ "groupId").text == MavenGroup)
 
-    def interpretDependencyNode(node: Node): AtomistDependency = {
+    def interpretDependencyNode(node: Node): IntraOrgDependency = {
       val childName = (node \ "artifactId").text
-      AtomistDependency(parentName, childName, None)
+      IntraOrgDependency(parentName, childName, None)
     }
     atomistDeps.map(interpretDependencyNode)
   }
 
-  val dependenciesOf: AtomistProject => Seq[AtomistDependency] = bringDown andThen atomistDependencies
+  val dependenciesOf: InOrgProject => Seq[IntraOrgDependency] = bringDown andThen atomistDependencies
 
-  case class AtomistDependency(parent: AtomistProject, child:AtomistProject, scope: Option[String]) extends Edge[AtomistProject] {
+  case class IntraOrgDependency(parent: InOrgProject, child:InOrgProject, scope: Option[String]) extends Edge[InOrgProject] {
     val label = scope
   }
 
-  def atomistDependencies(startingProject: AtomistProject): Seq[AtomistDependency] ={
+  def atomistDependencies(startingProject: InOrgProject): Seq[IntraOrgDependency] ={
 
-    def go(allDeps: Map[AtomistProject, Seq[AtomistDependency]], investigate: List[AtomistProject]): Map[AtomistProject, Seq[AtomistDependency]] = {
+    def go(allDeps: Map[InOrgProject, Seq[IntraOrgDependency]], investigate: List[InOrgProject]): Map[InOrgProject, Seq[IntraOrgDependency]] = {
       if(investigate.isEmpty)
         allDeps
       else
