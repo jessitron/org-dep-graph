@@ -49,7 +49,9 @@ object FetchAllApp extends App {
 
     def interpretDependencyNode(node: Node): IntraOrgDependency = {
       val childName = (node \ "artifactId").text
-      IntraOrgDependency(parentName, childName, None)
+      val scope = Option((node \ "scope")).map(_.text)
+      println(s"dep $childName has scope $scope")
+      IntraOrgDependency(parentName, childName, scope)
     }
     atomistDeps.map(interpretDependencyNode)
   }
