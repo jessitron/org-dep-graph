@@ -13,8 +13,7 @@ object FetchAllApp extends App {
   val MavenGroup = "com.atomist"
   val OutputName = "atomist"
 
-
-  type InOrgProject = String
+  type InOrgProject = String //GOAL: case class InOrgProject(name: String, version: Version)
   type Version = String
 
   case class IntraOrgDependency(parent: InOrgProject, child: InOrgProject, version: Version, scope: Option[String]) extends Edge[InOrgProject] {
@@ -30,7 +29,7 @@ object FetchAllApp extends App {
   }
 
 
-  def intraOrgDependencies: File => Seq[IntraOrgDependency] = { projectDir: File =>
+  def dependenciesFromPom: File => Seq[IntraOrgDependency] = { projectDir: File =>
     val pom = projectDir.listFiles().toList.find(_.getName == "pom.xml").getOrElse {
       throw new RuntimeException(s"No pom.xml found in ${projectDir.getName}")
     }
@@ -49,10 +48,10 @@ object FetchAllApp extends App {
     atomistDeps.map(interpretDependencyNode)
   }
 
-  val dependenciesOf: InOrgProject => Seq[IntraOrgDependency] = Git.bringDown andThen intraOrgDependencies
+  val dependenciesOf: InOrgProject => Seq[IntraOrgDependency] = Git.bringDown andThen dependenciesFromPom
 
 
-  def intraOrgDependencies(startingProject: InOrgProject): Seq[IntraOrgDependency] = {
+  def findAllDependencies(startingProject: InOrgProject): Seq[IntraOrgDependency] = {
 
     def go(allDeps: Map[InOrgProject, Seq[IntraOrgDependency]], investigate: List[InOrgProject]): Map[InOrgProject, Seq[IntraOrgDependency]] = {
       if (investigate.isEmpty)
@@ -74,7 +73,7 @@ object FetchAllApp extends App {
   }
 
 
-  val edges = intraOrgDependencies(StartingProject)
+  val edges = findAllDependencies(StartingProject)
   val r = GraphViz.makeAPicture(OutputName, edges, GraphViz.stringToNode)
   println(s"There is a picture for you in ${r.getAbsolutePath}")
 
