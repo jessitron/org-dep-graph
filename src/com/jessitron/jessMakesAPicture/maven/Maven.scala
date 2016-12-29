@@ -6,32 +6,40 @@ import scala.xml.{Elem, Node, XML}
 
 object Maven {
 
-  type InOrgProject = String //GOAL: case class InOrgProject(name: String, version: Version)
+  type ProjectName = String
   type Version = String
+  case class InOrgProject(name: ProjectName, version: Version)
 
   case class IntraOrgDependency(parent: InOrgProject, child: InOrgProject, version: Version, scope: Option[String])
 
   def dependenciesFromPom(groupId: String): File => Seq[IntraOrgDependency] = { projectDir: File =>
-    val projectXml = pomXml(projectDir)
+    val projectXml = pomXML(projectDir)
+    val parentVersion = projectVersion(projectXml)
     val parentName = (projectXml \ "artifactId").text
+    val parent = InOrgProject(parentName, parentVersion)
+
+
     val deps = projectXml \ "dependencies" \ "dependency"
     val intraOrgDeps = deps.filter(node => (node \ "groupId").text == groupId)
 
     def interpretDependencyNode(node: Node): IntraOrgDependency = {
-      val childName = (node \ "artifactId").text
+      val child = InOrgProject((node \ "artifactId").text, (node \ "version").text)
       val scope = (node \ "scope").text
-      val version = (node \ "version").text
-      IntraOrgDependency(parentName, childName, version, if (scope.isEmpty) scala.None else Some(scope))
+      IntraOrgDependency(parent, child, child.version, if (scope.isEmpty) scala.None else Some(scope))
     }
 
     intraOrgDeps.map(interpretDependencyNode)
   }
 
-  private def pomXml(projectDir: File): Elem = {
+  private def pomXML(projectDir: File): Elem = {
     val pom = projectDir.listFiles().toList.find(_.getName == "pom.xml").getOrElse {
       throw new RuntimeException(s"No pom.xml found in ${projectDir.getName}")
     }
     XML.loadFile(pom)
+  }
+
+  private def projectVersion(pomXML: Elem): Version = {
+    (pomXML \ "version").text
   }
 
 

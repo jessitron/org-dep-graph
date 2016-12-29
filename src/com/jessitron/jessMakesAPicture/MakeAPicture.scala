@@ -1,13 +1,10 @@
 package com.jessitron.jessMakesAPicture
 
-import java.io.File
-
 import com.jessitron.jessMakesAPicture.git.GitHubOrg
 import com.jessitron.jessMakesAPicture.graphviz.GraphViz
-import com.jessitron.jessMakesAPicture.graphviz.GraphViz.{Edge, LineStyle}
-import com.jessitron.jessMakesAPicture.maven.Maven.{InOrgProject, IntraOrgDependency}
-
-import scala.xml.{Node, XML}
+import com.jessitron.jessMakesAPicture.graphviz.GraphViz.{Edge, LineStyle, NodeId}
+import com.jessitron.jessMakesAPicture.maven.Maven
+import com.jessitron.jessMakesAPicture.maven.Maven.{InOrgProject, IntraOrgDependency, ProjectName}
 
 object MakeAPicture extends App {
 
@@ -37,31 +34,18 @@ object MakeAPicture extends App {
       }
   }
 
-  def dependenciesFromPom(groupId: String): File => Seq[IntraOrgDependency] = { projectDir: File =>
-    val pom = projectDir.listFiles().toList.find(_.getName == "pom.xml").getOrElse {
-      throw new RuntimeException(s"No pom.xml found in ${projectDir.getName}")
+  def projectNode: InOrgProject => GraphViz.Node = { project =>
+    new GraphViz.Node {
+      override def id: NodeId = NodeId(GraphViz.dashesToUnderscores(project.name))
     }
-    val projectXml = XML.loadFile(pom)
-    val parentName = (projectXml \ "artifactId").text
-    val deps = projectXml \ "dependencies" \ "dependency"
-    val atomistDeps = deps.filter(node => (node \ "groupId").text == groupId)
-
-    def interpretDependencyNode(node: Node): IntraOrgDependency = {
-      val childName = (node \ "artifactId").text
-      val scope = (node \ "scope").text
-      val version = (node \ "version").text
-      IntraOrgDependency(parentName, childName, version, if (scope.isEmpty) scala.None else Some(scope))
-    }
-
-    atomistDeps.map(interpretDependencyNode)
   }
 
-  val dependenciesOf: InOrgProject => Seq[IntraOrgDependency] = git.bringDown andThen dependenciesFromPom(MavenGroup)
 
+  val dependenciesOf: ProjectName => Seq[IntraOrgDependency] = git.bringDown andThen Maven.dependenciesFromPom(MavenGroup)
 
-  def findAllDependencies(startingProject: InOrgProject): Seq[IntraOrgDependency] = {
+  def findAllDependencies(startingProject: ProjectName): Seq[IntraOrgDependency] = {
 
-    def go(allDeps: Map[InOrgProject, Seq[IntraOrgDependency]], investigate: List[InOrgProject]): Map[InOrgProject, Seq[IntraOrgDependency]] = {
+    def go(allDeps: Map[ProjectName, Seq[IntraOrgDependency]], investigate: List[ProjectName]): Map[ProjectName, Seq[IntraOrgDependency]] = {
       if (investigate.isEmpty)
         allDeps
       else {
@@ -70,19 +54,19 @@ object MakeAPicture extends App {
           go(allDeps, rest)
         else {
           val deps = dependenciesOf(next)
-          go(allDeps + (next -> deps), rest ++ deps.map(_.child))
+          go(allDeps + (next -> deps), rest ++ deps.map(_.child.name))
         }
       }
     }
 
     val allDeps = go(Map(), List(startingProject))
 
-    allDeps.toSeq.flatMap { case (_parent, deps) => deps }
+    allDeps.values.flatten.toSeq
   }
 
 
   val edges = findAllDependencies(StartingProject)
-  val r = GraphViz.makeAPicture(OutputName, edges.map(dependencyEdge), GraphViz.stringToNode)
+  val r = GraphViz.makeAPicture(OutputName, edges.map(dependencyEdge), projectNode)
   println(s"There is a picture for you in ${r.getAbsolutePath}")
 
 }
