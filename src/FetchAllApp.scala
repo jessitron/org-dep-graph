@@ -75,7 +75,7 @@ object FetchAllApp extends App {
 
 
   val edges = intraOrgDependencies(StartingProject)
-  val r = GraphViz.makeAPicture(OutputName, edges, GraphViz.dashesToUnderscores)
+  val r = GraphViz.makeAPicture(OutputName, edges, GraphViz.stringToNode)
   println(s"There is a picture for you in ${r.getAbsolutePath}")
 
 }
@@ -90,11 +90,27 @@ object GraphViz {
     }
   }
 
+  def stringToNode(nodeId: String): Node = {
+    new Node {
+      val id = NodeId(dashesToUnderscores(nodeId))
+    }
+  }
+
   sealed trait LineStyle
 
   case object Dashed extends LineStyle
 
   case object Dotted extends LineStyle
+
+  case class NodeId(id: String) {
+    if (id.contains("-")) throw new IllegalArgumentException("No dashes allowed in the id")
+  }
+
+  trait Node {
+    def id : NodeId
+    final def idString : String = id.id
+    def label : Option[String] = None
+  }
 
   trait Edge[A] {
     def parent: A
@@ -106,16 +122,16 @@ object GraphViz {
     def style: Option[LineStyle] = None
   }
 
-  def dag[A](name: String, edges: Seq[Edge[A]], toGraphVizId: A => String): String = {
-    val formattedEdges = edges.map(formatEdge(toGraphVizId))
+  def dag[A](name: String, edges: Seq[Edge[A]], toNode: A => Node): String = {
+    val formattedEdges = edges.map(formatEdge(toNode))
     s"digraph $name " + formattedEdges.mkString("{\n", "\n", "\n}")
   }
 
-  def formatEdge[A](toGraphVizId: A => String)(e: Edge[A]): String = {
+  def formatEdge[A](toNode: A => Node)(e: Edge[A]): String = {
     val modifiers =
       e.label.map { l => s"""label="$l"""" } ++
         e.style.map { s => s"""style="${s.toString.toLowerCase}"""" }
-    s"${toGraphVizId(e.parent)} -> ${toGraphVizId(e.child)} ${modifiers.mkString("[", ",", "]")};"
+    s"${toNode(e.parent).idString} -> ${toNode(e.child).idString} ${modifiers.mkString("[", ",", "]")};"
   }
 
   def dashesToUnderscores(in: String): String = {
@@ -124,8 +140,8 @@ object GraphViz {
 
   import sys.process._
 
-  def makeAPicture[A](name: String, edges: Seq[Edge[A]], toGraphVizId: A => String): File = {
-    val dotText = dag(name, edges, toGraphVizId)
+  def makeAPicture[A](name: String, edges: Seq[Edge[A]], toNode: A => Node): File = {
+    val dotText = dag(name, edges, toNode)
     val dotFile = s"$name.dot"
     Files.write(Paths.get(dotFile), dotText.getBytes(StandardCharsets.UTF_8))
 
