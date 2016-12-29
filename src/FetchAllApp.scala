@@ -8,10 +8,8 @@ import scala.xml.{Node, XML}
 
 object FetchAllApp extends App {
 
-  import sys.process._
 
   val StartingProject = "rug-cli"
-  val GitHubUrl = "git@github.com-personal:atomist/"
   val MavenGroup = "com.atomist"
   val OutputName = "atomist"
 
@@ -27,29 +25,6 @@ object FetchAllApp extends App {
       }
   }
 
-  /**
-    * Clone a repo in the current directory
-    *
-    * @return the cloned directory as a File
-    */
-  def bringDown: InOrgProject => File = { project =>
-    // idempotent
-    val existingDir = new File(project)
-    if (existingDir.isDirectory) {
-      println(s"fetching in $project")
-      val fetchExitCode = Seq("git", "-C", existingDir.getPath, "fetch").!
-      if(fetchExitCode != 0) throw new RuntimeException(s"Found project $project in ${existingDir.getPath} but could not fetch there")
-      existingDir
-    }
-    else {
-      val gitUrl = s"$GitHubUrl$project"
-      val exitCode = Seq("git", "clone", gitUrl).!
-      if (exitCode != 0) throw new RuntimeException(s"git clone $gitUrl failed with $exitCode")
-      val dir = new File(project)
-      if (!dir.isDirectory) throw new RuntimeException(s"git clone $gitUrl did not produce directory $project")
-      dir
-    }
-  }
 
   def intraOrgDependencies: File => Seq[IntraOrgDependency] = { projectDir: File =>
     val pom = projectDir.listFiles().toList.find(_.getName == "pom.xml").getOrElse {
@@ -69,7 +44,7 @@ object FetchAllApp extends App {
     atomistDeps.map(interpretDependencyNode)
   }
 
-  val dependenciesOf: InOrgProject => Seq[IntraOrgDependency] = bringDown andThen intraOrgDependencies
+  val dependenciesOf: InOrgProject => Seq[IntraOrgDependency] = Git.bringDown andThen intraOrgDependencies
 
 
   def intraOrgDependencies(startingProject: InOrgProject): Seq[IntraOrgDependency] = {
@@ -155,4 +130,36 @@ object GraphViz {
     if (exitCode != 0) throw new RuntimeException("Failure running dot ... do you have graphviz installed?")
     new File(pictureFile)
   }
+}
+
+object Git {
+
+  import sys.process._
+
+  val GitHubUrl = "git@github.com-personal:atomist/"
+
+  /**
+    * Clone a repo in the current directory
+    *
+    * @return the cloned directory as a File
+    */
+  def bringDown: String => File = { project =>
+    // idempotent
+    val existingDir = new File(project)
+    if (existingDir.isDirectory) {
+      println(s"fetching in $project")
+      val fetchExitCode = Seq("git", "-C", existingDir.getPath, "fetch").!
+      if(fetchExitCode != 0) throw new RuntimeException(s"Found project $project in ${existingDir.getPath} but could not fetch there")
+      existingDir
+    }
+    else {
+      val gitUrl = s"$GitHubUrl$project"
+      val exitCode = Seq("git", "clone", gitUrl).!
+      if (exitCode != 0) throw new RuntimeException(s"git clone $gitUrl failed with $exitCode")
+      val dir = new File(project)
+      if (!dir.isDirectory) throw new RuntimeException(s"git clone $gitUrl did not produce directory $project")
+      dir
+    }
+  }
+
 }
