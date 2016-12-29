@@ -48,16 +48,21 @@ object GraphViz {
     def style: Option[LineStyle] = None
   }
 
-  def dag[A](name: String, edges: Seq[Edge[A]], toNode: A => Node): String = {
+  private def dag[A](name: String, edges: Seq[Edge[A]], toNode: A => Node, nodesToLabel: Seq[Node]): String = {
     val formattedEdges = edges.map(formatEdge(toNode))
-    s"digraph $name " + formattedEdges.mkString("{\n", "\n", "\n}")
+    val formattedNodes = nodesToLabel.map(formatNode).distinct
+    s"digraph $name " + (formattedEdges ++ formattedNodes).mkString("{\n", "\n", "\n}")
   }
 
-  def formatEdge[A](toNode: A => Node)(e: Edge[A]): String = {
+  private def formatEdge[A](toNode: A => Node)(e: Edge[A]): String = {
     val modifiers =
       e.label.map { l => s"""label="$l"""" } ++
         e.style.map { s => s"""style="${s.toString.toLowerCase}"""" }
     s"${toNode(e.parent).idString} -> ${toNode(e.child).idString} ${modifiers.mkString("[", ",", "]")};"
+  }
+
+  private def formatNode(node: Node): String = {
+    s"""${node.idString} [label="${node.label}"];"""
   }
 
   def dashesToUnderscores(in: String): String = {
@@ -66,15 +71,18 @@ object GraphViz {
 
   import sys.process._
 
-  def makeAPicture[A](name: String, edges: Seq[Edge[A]], toNode: A => Node): File = {
-    val dotText = dag(name, edges, toNode)
+  def makeAPicture[A](name: String, edges: Seq[Edge[A]], toNode: A => Node, nodesToLabel: Seq[Node] = Seq()): File = {
+    val dotText = dag(name, edges, toNode, nodesToLabel)
     val dotFile = s"$name.dot"
     Files.write(Paths.get(dotFile), dotText.getBytes(StandardCharsets.UTF_8))
 
     val outputFormat = "png"
     val pictureFile = s"$name.$outputFormat"
     val exitCode = Seq("dot", s"-T${outputFormat}", dotFile, "-o", pictureFile).!
-    if (exitCode != 0) throw new RuntimeException("Failure running dot ... do you have graphviz installed?")
+    if (exitCode != 0) {
+      println(dotText)
+      throw new RuntimeException("Failure running dot ... do you have graphviz installed?")
+    }
     new File(pictureFile)
   }
 }

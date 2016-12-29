@@ -37,6 +37,7 @@ object MakeAPicture extends App {
   def projectNode: InOrgProject => GraphViz.Node = { project =>
     new GraphViz.Node {
       override def id: NodeId = NodeId(GraphViz.dashesToUnderscores(project.name))
+      override def label: String = s"${project.name} ${project.version}"
     }
   }
 
@@ -66,7 +67,8 @@ object MakeAPicture extends App {
 
 
   val edges = findAllDependencies(StartingProject)
-  val r = GraphViz.makeAPicture(OutputName, edges.map(dependencyEdge), projectNode)
+  val projectNodes = edges.map(_.parent).map(projectNode)
+  val r = GraphViz.makeAPicture(OutputName, edges.map(dependencyEdge), projectNode, projectNodes)
   println(s"There is a picture for you in ${r.getAbsolutePath}")
 
 }
