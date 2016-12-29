@@ -15,9 +15,13 @@ object FetchAllApp extends App {
 
 
   type InOrgProject = String
+  type Version = String
 
-  case class IntraOrgDependency(parent: InOrgProject, child: InOrgProject, scope: Option[String]) extends Edge[InOrgProject] {
-    val label = scope
+  case class IntraOrgDependency(parent: InOrgProject, child: InOrgProject, version: Version, scope: Option[String]) extends Edge[InOrgProject] {
+    val label = Some(scope match {
+      case None => version
+      case Some(sc) => s"$version ($sc)"
+    })
     override def style =
       scope.map {
         case "test" => Dashed
@@ -38,7 +42,8 @@ object FetchAllApp extends App {
     def interpretDependencyNode(node: Node): IntraOrgDependency = {
       val childName = (node \ "artifactId").text
       val scope = (node \ "scope").text
-      IntraOrgDependency(parentName, childName, if (scope.isEmpty) scala.None else Some(scope))
+      val version = (node \ "version").text
+      IntraOrgDependency(parentName, childName, version, if (scope.isEmpty) scala.None else Some(scope))
     }
 
     atomistDeps.map(interpretDependencyNode)
