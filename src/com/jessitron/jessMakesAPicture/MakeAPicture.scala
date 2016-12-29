@@ -23,8 +23,8 @@ object MakeAPicture extends App {
         override def child: InOrgProject = dep.child
 
         val label = Some(dep.scope match {
-          case None => dep.version
-          case Some(sc) => s"${dep.version} ($sc)"
+          case None => dep.child.version
+          case Some(sc) => s"${dep.child.version} ($sc)"
         })
         override val style: Option[LineStyle] =
           dep.scope.map {

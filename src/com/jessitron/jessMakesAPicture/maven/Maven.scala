@@ -10,7 +10,7 @@ object Maven {
   type Version = String
   case class InOrgProject(name: ProjectName, version: Version)
 
-  case class IntraOrgDependency(parent: InOrgProject, child: InOrgProject, version: Version, scope: Option[String])
+  case class IntraOrgDependency(parent: InOrgProject, child: InOrgProject, scope: Option[String])
 
   def dependenciesFromPom(groupId: String): File => Seq[IntraOrgDependency] = { projectDir: File =>
     val projectXml = pomXML(projectDir)
@@ -25,7 +25,7 @@ object Maven {
     def interpretDependencyNode(node: Node): IntraOrgDependency = {
       val child = InOrgProject((node \ "artifactId").text, (node \ "version").text)
       val scope = (node \ "scope").text
-      IntraOrgDependency(parent, child, child.version, if (scope.isEmpty) scala.None else Some(scope))
+      IntraOrgDependency(parent, child, if (scope.isEmpty) scala.None else Some(scope))
     }
 
     intraOrgDeps.map(interpretDependencyNode)
