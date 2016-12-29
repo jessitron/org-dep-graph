@@ -35,7 +35,7 @@ object GraphViz {
   trait Node {
     def id : NodeId
     final def idString : String = id.id
-    def label : Option[String] = None
+    def label : String = idString
   }
 
   trait Edge[A] {
