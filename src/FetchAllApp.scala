@@ -137,6 +137,14 @@ object Git {
   import sys.process._
 
   val GitHubUrl = "git@github.com-personal:atomist/"
+  val FetchForUptodateness = false
+
+  private def fetchIn(dir: File): File = {
+    println(s"fetching in ${dir.getName}")
+    val fetchExitCode = Seq("git", "-C", dir.getPath, "fetch").!
+    if (fetchExitCode != 0) throw new RuntimeException(s"Could not fetch in ${dir.getPath}")
+    dir
+  }
 
   /**
     * Clone a repo in the current directory
@@ -144,13 +152,12 @@ object Git {
     * @return the cloned directory as a File
     */
   def bringDown: String => File = { project =>
-    // idempotent
     val existingDir = new File(project)
     if (existingDir.isDirectory) {
-      println(s"fetching in $project")
-      val fetchExitCode = Seq("git", "-C", existingDir.getPath, "fetch").!
-      if(fetchExitCode != 0) throw new RuntimeException(s"Found project $project in ${existingDir.getPath} but could not fetch there")
-      existingDir
+      if (FetchForUptodateness)
+        fetchIn(existingDir)
+      else
+        existingDir
     }
     else {
       val gitUrl = s"$GitHubUrl$project"
