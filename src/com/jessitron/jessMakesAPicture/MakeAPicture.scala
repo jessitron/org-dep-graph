@@ -4,6 +4,7 @@ import java.io.File
 
 import com.jessitron.jessMakesAPicture.git.Git
 import com.jessitron.jessMakesAPicture.graphviz.GraphViz
+import com.jessitron.jessMakesAPicture.graphviz.GraphViz.{Edge, LineStyle}
 
 import scala.xml.{Node, XML}
 
@@ -17,15 +18,24 @@ object MakeAPicture extends App {
   type InOrgProject = String //GOAL: case class InOrgProject(name: String, version: Version)
   type Version = String
 
-  case class IntraOrgDependency(parent: InOrgProject, child: InOrgProject, version: Version, scope: Option[String]) extends GraphViz.Edge[InOrgProject] {
-    val label = Some(scope match {
-      case None => version
-      case Some(sc) => s"$version ($sc)"
-    })
-    override def style =
-      scope.map {
-        case "test" => GraphViz.Dashed
-        case "provided" => GraphViz.Dotted
+  case class IntraOrgDependency(parent: InOrgProject, child: InOrgProject, version: Version, scope: Option[String])
+
+  def dependencyEdge: IntraOrgDependency => Edge[InOrgProject] = {
+    dep =>
+      new Edge[InOrgProject] {
+        override def parent: InOrgProject = dep.parent
+
+        override def child: InOrgProject = dep.child
+
+        val label = Some(dep.scope match {
+          case None => dep.version
+          case Some(sc) => s"${dep.version} ($sc)"
+        })
+        override val style: Option[LineStyle] =
+          dep.scope.map {
+            case "test" => GraphViz.Dashed
+            case "provided" => GraphViz.Dotted
+          }
       }
   }
 
@@ -75,7 +85,7 @@ object MakeAPicture extends App {
 
 
   val edges = findAllDependencies(StartingProject)
-  val r = GraphViz.makeAPicture(OutputName, edges, GraphViz.stringToNode)
+  val r = GraphViz.makeAPicture(OutputName, edges.map(dependencyEdge), GraphViz.stringToNode)
   println(s"There is a picture for you in ${r.getAbsolutePath}")
 
 }
