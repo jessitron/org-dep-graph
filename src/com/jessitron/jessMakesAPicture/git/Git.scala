@@ -2,11 +2,10 @@ package com.jessitron.jessMakesAPicture.git
 
 import java.io.File
 
-object Git {
+class GitHubOrg(url: String) {
 
   import sys.process._
 
-  val GitHubUrl = "git@github.com-personal:atomist/"
   val FetchForUptodateness = false
 
   private def fetchIn(dir: File): File = {
@@ -30,7 +29,7 @@ object Git {
         existingDir
     }
     else {
-      val gitUrl = s"$GitHubUrl$project"
+      val gitUrl = s"$url$project"
       val exitCode = Seq("git", "clone", gitUrl).!
       if (exitCode != 0) throw new RuntimeException(s"git clone $gitUrl failed with $exitCode")
       val dir = new File(project)

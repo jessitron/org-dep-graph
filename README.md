@@ -20,6 +20,6 @@ If you wanted to use this, you would:
 - import this project into IntelliJ
 - modify FetchAllApp.scala to change the hard-coded org name and output name
 - if you don't want repos cloned into your project dir: set up a run configuration that runs it where you want the repos cloned
-- right-click in FetchAllApp to run it in IntelliJ
+- right-click in MakeAPicture to run it in IntelliJ
 
 Nope, this isn't useful enough yet for me to set up an executable jar and a script.

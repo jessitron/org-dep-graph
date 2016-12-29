@@ -18,7 +18,7 @@ object Maven {
     val projectXml = XML.loadFile(pom)
     val parentName = (projectXml \ "artifactId").text
     val deps = projectXml \ "dependencies" \ "dependency"
-    val atomistDeps = deps.filter(node => (node \ "groupId").text == groupId)
+    val intraOrgDeps = deps.filter(node => (node \ "groupId").text == groupId)
 
     def interpretDependencyNode(node: Node): IntraOrgDependency = {
       val childName = (node \ "artifactId").text
@@ -27,7 +27,7 @@ object Maven {
       IntraOrgDependency(parentName, childName, version, if (scope.isEmpty) scala.None else Some(scope))
     }
 
-    atomistDeps.map(interpretDependencyNode)
+    intraOrgDeps.map(interpretDependencyNode)
   }
 
 }

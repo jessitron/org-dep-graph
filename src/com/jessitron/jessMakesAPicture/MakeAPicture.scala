@@ -2,7 +2,7 @@ package com.jessitron.jessMakesAPicture
 
 import java.io.File
 
-import com.jessitron.jessMakesAPicture.git.Git
+import com.jessitron.jessMakesAPicture.git.GitHubOrg
 import com.jessitron.jessMakesAPicture.graphviz.GraphViz
 import com.jessitron.jessMakesAPicture.graphviz.GraphViz.{Edge, LineStyle}
 import com.jessitron.jessMakesAPicture.maven.Maven.{InOrgProject, IntraOrgDependency}
@@ -11,10 +11,12 @@ import scala.xml.{Node, XML}
 
 object MakeAPicture extends App {
 
-
   val StartingProject = "rug-cli"
+  val GitHubUrl = "git@github.com-personal:atomist/"
   val MavenGroup = "com.atomist"
   val OutputName = "atomist"
+
+  val git = new GitHubOrg(GitHubUrl)
 
   def dependencyEdge: IntraOrgDependency => Edge[InOrgProject] = {
     dep =>
@@ -35,7 +37,6 @@ object MakeAPicture extends App {
       }
   }
 
-
   def dependenciesFromPom(groupId: String): File => Seq[IntraOrgDependency] = { projectDir: File =>
     val pom = projectDir.listFiles().toList.find(_.getName == "pom.xml").getOrElse {
       throw new RuntimeException(s"No pom.xml found in ${projectDir.getName}")
@@ -55,7 +56,7 @@ object MakeAPicture extends App {
     atomistDeps.map(interpretDependencyNode)
   }
 
-  val dependenciesOf: InOrgProject => Seq[IntraOrgDependency] = Git.bringDown andThen dependenciesFromPom(MavenGroup)
+  val dependenciesOf: InOrgProject => Seq[IntraOrgDependency] = git.bringDown andThen dependenciesFromPom(MavenGroup)
 
 
   def findAllDependencies(startingProject: InOrgProject): Seq[IntraOrgDependency] = {
