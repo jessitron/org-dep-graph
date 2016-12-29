@@ -30,14 +30,14 @@ object MakeAPicture extends App {
   }
 
 
-  def dependenciesFromPom: File => Seq[IntraOrgDependency] = { projectDir: File =>
+  def dependenciesFromPom(groupId: String): File => Seq[IntraOrgDependency] = { projectDir: File =>
     val pom = projectDir.listFiles().toList.find(_.getName == "pom.xml").getOrElse {
       throw new RuntimeException(s"No pom.xml found in ${projectDir.getName}")
     }
     val projectXml = XML.loadFile(pom)
     val parentName = (projectXml \ "artifactId").text
     val deps = projectXml \ "dependencies" \ "dependency"
-    val atomistDeps = deps.filter(node => (node \ "groupId").text == MavenGroup)
+    val atomistDeps = deps.filter(node => (node \ "groupId").text == groupId)
 
     def interpretDependencyNode(node: Node): IntraOrgDependency = {
       val childName = (node \ "artifactId").text
@@ -49,7 +49,7 @@ object MakeAPicture extends App {
     atomistDeps.map(interpretDependencyNode)
   }
 
-  val dependenciesOf: InOrgProject => Seq[IntraOrgDependency] = Git.bringDown andThen dependenciesFromPom
+  val dependenciesOf: InOrgProject => Seq[IntraOrgDependency] = Git.bringDown andThen dependenciesFromPom(MavenGroup)
 
 
   def findAllDependencies(startingProject: InOrgProject): Seq[IntraOrgDependency] = {
