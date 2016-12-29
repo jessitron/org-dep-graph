@@ -1,11 +1,11 @@
 digraph atomist {
-rug_cli -> artifact_source [];
-rug_cli -> rug_resolver [];
-rug_cli -> rug [label="provided",style="dotted"];
-rug -> artifact_source [];
-rug -> rug_compiler [];
-rug -> rug_typescript_compiler [label="test",style="dashed"];
-rug_resolver -> rug [];
-rug_typescript_compiler -> rug_compiler [];
-rug_compiler -> artifact_source [];
+rug_cli -> artifact_source [label="0.13.0"];
+rug_cli -> rug_resolver [label="${rug-resolver.version}"];
+rug_cli -> rug [label="${rug.version} (provided)",style="dotted"];
+rug -> artifact_source [label="0.13.1"];
+rug -> rug_compiler [label="0.4.0"];
+rug -> rug_typescript_compiler [label="0.6.0 (test)",style="dashed"];
+rug_resolver -> rug [label="${rug.version}"];
+rug_typescript_compiler -> rug_compiler [label="0.4.0"];
+rug_compiler -> artifact_source [label="0.13.0"];
 }
