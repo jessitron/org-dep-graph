@@ -5,6 +5,7 @@ import java.io.File
 import com.jessitron.jessMakesAPicture.git.Git
 import com.jessitron.jessMakesAPicture.graphviz.GraphViz
 import com.jessitron.jessMakesAPicture.graphviz.GraphViz.{Edge, LineStyle}
+import com.jessitron.jessMakesAPicture.maven.Maven.{InOrgProject, IntraOrgDependency}
 
 import scala.xml.{Node, XML}
 
@@ -14,11 +15,6 @@ object MakeAPicture extends App {
   val StartingProject = "rug-cli"
   val MavenGroup = "com.atomist"
   val OutputName = "atomist"
-
-  type InOrgProject = String //GOAL: case class InOrgProject(name: String, version: Version)
-  type Version = String
-
-  case class IntraOrgDependency(parent: InOrgProject, child: InOrgProject, version: Version, scope: Option[String])
 
   def dependencyEdge: IntraOrgDependency => Edge[InOrgProject] = {
     dep =>

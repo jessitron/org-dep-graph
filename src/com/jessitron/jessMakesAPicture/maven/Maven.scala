@@ -2,12 +2,14 @@ package com.jessitron.jessMakesAPicture.maven
 
 import java.io.File
 
-import com.jessitron.jessMakesAPicture.MakeAPicture.IntraOrgDependency
-
 import scala.xml.{Node, XML}
 
 object Maven {
 
+  type InOrgProject = String //GOAL: case class InOrgProject(name: String, version: Version)
+  type Version = String
+
+  case class IntraOrgDependency(parent: InOrgProject, child: InOrgProject, version: Version, scope: Option[String])
 
   def dependenciesFromPom(groupId: String): File => Seq[IntraOrgDependency] = { projectDir: File =>
     val pom = projectDir.listFiles().toList.find(_.getName == "pom.xml").getOrElse {
