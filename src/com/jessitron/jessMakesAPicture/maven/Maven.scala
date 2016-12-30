@@ -18,17 +18,38 @@ object Maven {
     val parentName = (projectXml \ "artifactId").text
     val parent = InOrgProject(parentName, parentVersion)
 
+    val properties = projectProperties(projectXml)
+
 
     val deps = projectXml \ "dependencies" \ "dependency"
     val intraOrgDeps = deps.filter(node => (node \ "groupId").text == groupId)
 
     def interpretDependencyNode(node: Node): IntraOrgDependency = {
-      val child = InOrgProject((node \ "artifactId").text, (node \ "version").text)
+      val childVersion = substituteProperty(properties, (node \ "version").text)
+      val child = InOrgProject((node \ "artifactId").text, childVersion)
       val scope = (node \ "scope").text
       IntraOrgDependency(parent, child, if (scope.isEmpty) scala.None else Some(scope))
     }
 
     intraOrgDeps.map(interpretDependencyNode)
+  }
+
+  private def projectProperties(pomXML: Elem): Map[String, String] = {
+    val propertyElements = (pomXML \ "properties").collect { case e: Elem => e.child }.flatten
+    val o = propertyElements.collect({ case e: Elem => (e.label, e.text)}).toMap
+    println(o)
+    o
+  }
+
+  private def substituteProperty(props: Map[String,String], in: String): String = {
+    var str = in
+    props.foreach {
+      case (key, value) =>
+        str = str.replace("${" + key + "}", value)
+    }
+    if( in != str)
+      println(s"Replaced $in with $str")
+    str
   }
 
   private def pomXML(projectDir: File): Elem = {
