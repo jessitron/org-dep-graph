@@ -37,7 +37,6 @@ object Maven {
   private def projectProperties(pomXML: Elem): Map[String, String] = {
     val propertyElements = (pomXML \ "properties").collect { case e: Elem => e.child }.flatten
     val o = propertyElements.collect({ case e: Elem => (e.label, e.text)}).toMap
-    println(o)
     o
   }
 
@@ -47,8 +46,6 @@ object Maven {
       case (key, value) =>
         str = str.replace("${" + key + "}", value)
     }
-    if( in != str)
-      println(s"Replaced $in with $str")
     str
   }
 
