@@ -9,7 +9,7 @@ import com.jessitron.jessMakesAPicture.maven.Maven.{InOrgProject, IntraOrgDepend
 object MakeAPicture extends App {
 
   val StartingProject = "rug-cli"
-  val GitHubUrl = "git@github.com-personal:atomist/"
+  val GitHubUrl = "git@github.com:atomist/"
   val MavenGroup = "com.atomist"
   val OutputName = "atomist"
 

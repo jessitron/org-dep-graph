@@ -1,9 +1,8 @@
 package com.jessitron.jessMakesAPicture.graphviz
 
-import java.io.File
+import java.io.{File, IOException}
 import java.nio.charset.StandardCharsets
-import java.nio.file.{Files, Paths}
-
+import java.nio.file.{Files, Path, Paths}
 
 
 object GraphViz {
@@ -33,9 +32,11 @@ object GraphViz {
   }
 
   trait Node {
-    def id : NodeId
-    final def idString : String = id.id
-    def label : String = idString
+    def id: NodeId
+
+    final def idString: String = id.id
+
+    def label: String = idString
   }
 
   trait Edge[A] {
@@ -73,16 +74,32 @@ object GraphViz {
 
   def makeAPicture[A](name: String, edges: Seq[Edge[A]], toNode: A => Node, nodesToLabel: Seq[Node] = Seq()): File = {
     val dotText = dag(name, edges, toNode, nodesToLabel)
-    val dotFile = s"$name.dot"
-    Files.write(Paths.get(dotFile), dotText.getBytes(StandardCharsets.UTF_8))
+    val dotFile = writeDotFile(name, dotText)
 
-    val outputFormat = "png"
-    val pictureFile = s"$name.$outputFormat"
-    val exitCode = Seq("dot", s"-T${outputFormat}", dotFile, "-o", pictureFile).!
-    if (exitCode != 0) {
-      println(dotText)
-      throw new RuntimeException("Failure running dot ... do you have graphviz installed?")
+    runDot("png", dotFile, name)
+  }
+
+  private def writeDotFile(name: String, contents: String): Path = {
+    val dotFile = s"$name.dot"
+    Files.write(Paths.get(dotFile), contents.getBytes(StandardCharsets.UTF_8))
+  }
+
+  private def runDot(outputFormat: String, dotFile: Path, outputName: String): File = {
+    val pictureFile = s"$outputName.$outputFormat"
+    val exitCode = try {
+      Seq("dot", s"-T${outputFormat}", dotFile.toString, "-o", pictureFile).!
+    } catch {
+      case e: IOException =>
+        throw new RuntimeException("Could not run dot. Do you have graphviz installed?", e)
     }
+
+    if (exitCode != 0) {
+      println(Files.readAllBytes(dotFile))
+      throw new RuntimeException("Failure running dot.")
+    }
+
     new File(pictureFile)
   }
+
+
 }
