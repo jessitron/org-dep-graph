@@ -12,6 +12,10 @@ class GitHubOrg(url: String) {
     println(s"fetching in ${dir.getName}")
     val fetchExitCode = Seq("git", "-C", dir.getPath, "fetch").!
     if (fetchExitCode != 0) throw new RuntimeException(s"Could not fetch in ${dir.getPath}")
+    val ffExitCode = Seq("git", "-C", dir.getPath, "merge", "--ff-only").!
+    if (ffExitCode != 0) {
+      println(s"WARNING: could not bring repository in ${dir.getPath} up to date.")
+    }
     dir
   }
 
