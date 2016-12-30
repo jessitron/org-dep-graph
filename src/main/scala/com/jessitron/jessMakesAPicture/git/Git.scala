@@ -6,7 +6,7 @@ class GitHubOrg(url: String) {
 
   import sys.process._
 
-  val FetchForUptodateness = true
+  val FetchForUptodateness = false
 
   private def fetchIn(dir: File): File = {
     println(s"fetching in ${dir.getName}")
