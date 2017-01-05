@@ -18,7 +18,7 @@ object MakeAPicture extends App {
   val GitHubUrl = "git@github.com:atomist/"
   val MavenGroup = "com.atomist"
   val OutputName = "atomist"
-  val BuildFileLocation = "bin/build.sh"
+  val BuildFileLocation = "bin/"
 
   val git = new GitHubOrg(GitHubUrl)
 
@@ -83,7 +83,13 @@ object MakeAPicture extends App {
   val buildOrder = Linearize.tsort(edges.map { case dep => (dep.parent.name, dep.child.name) }).toList.reverse
   println(s"Here is an order for building: ${buildOrder}")
 
-  val buildScript = BuildScript.createBuildScript(BuildFileLocation, buildOrder)
+
+  Seq("install", "clean").foreach { op =>
+    val scriptName = s"$BuildFileLocation/${op.replace(" ", "_")}_all.sh"
+    val command = s"mvn $op"
+    val buildScript = BuildScript.createBuildScript(command, scriptName, buildOrder)
+    println(s"There is a script for you in $buildScript")
+  }
 
 }
 
