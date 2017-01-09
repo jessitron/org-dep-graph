@@ -22,16 +22,18 @@ object BuildScript {
       |
     """.stripMargin
 
-  def footer(command: Command) =
+  def footer(command: Command, projects: Seq[ProjectName]) =
     s"""
       |title "$command complete"
+      |
+      |echo "Finished running '$command' on ${projects.mkString(",")}"
     """.stripMargin
 
-  def createBuildScript(command: Command, locationString: String, projects: Seq[ProjectName]): Path = {
+  def createBuildScript(locationString: String, command: Command, scriptName: String, projects: Seq[ProjectName]): Path = {
 
     val newContent = buildScriptFor(command, projects).getBytes(StandardCharsets.UTF_8)
 
-    val location = Paths.get(locationString)
+    val location = Paths.get(s"$locationString/$scriptName")
     if (Files.exists(location)) {
       val existingContent = Files.readAllBytes(location)
       if (existingContent.toString == newContent) {
@@ -48,7 +50,7 @@ object BuildScript {
   }
 
   private def buildScriptFor(command: Command, projects: Seq[ProjectName]) = {
-    header + projects.zipWithIndex.map(indexFromOne).map(buildOne(command, projects.length)).mkString("\n") + footer(command)
+    header + projects.zipWithIndex.map(indexFromOne).map(buildOne(command, projects.length)).mkString("\n") + footer(command, projects)
   }
 
   private def indexFromOne[A](zipped: (A, Int)): (A, Int) =

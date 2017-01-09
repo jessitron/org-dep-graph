@@ -84,10 +84,9 @@ object MakeAPicture extends App {
   println(s"Here is an order for building: ${buildOrder}")
 
 
-  Seq("install", "clean").foreach { op =>
-    val scriptName = s"$BuildFileLocation/${op.replace(" ", "_")}_all.sh"
-    val command = s"mvn $op"
-    val buildScript = BuildScript.createBuildScript(command, scriptName, buildOrder)
+  Seq("install" -> "mvn install", "clean" -> "mvn clean", "fetch" -> "git fetch && git merge --ff-only").foreach { case (name, command) =>
+    val scriptName = s"${name}_all"
+    val buildScript = BuildScript.createBuildScript(BuildFileLocation, command, scriptName, buildOrder)
     println(s"There is a script for you in $buildScript")
   }
 
