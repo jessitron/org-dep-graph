@@ -13,3 +13,18 @@ editor:
   parameters:
     - "main_class": "com.jessitron.jessMakesAPicture.MakeAPicture"
 
+---
+kind: "operation"
+client: "rug-cli 0.20.0"
+editor:
+  name: "jessitron.scattered-rugs.MakeExecutableJar"
+  group: "jessitron"
+  artifact: "scattered-rugs"
+  version: "0.1.0"
+  origin:
+    repo: "jessitron/scattered-rugs.git"
+    branch: "master"
+    sha: "f0bb963*"
+  parameters:
+    - "main_class": "com.jessitron.jessMakesAPicture.MakeAPicture"
+
