@@ -1,9 +1,5 @@
 package com.jessitron.jessMakesAPicture
 
-import java.nio.charset.StandardCharsets
-import java.nio.file.attribute.PosixFilePermissions
-import java.nio.file.{Files, Path, Paths}
-
 import com.jessitron.jessMakesAPicture.git.GitHubOrg
 import com.jessitron.jessMakesAPicture.graphviz.GraphViz
 import com.jessitron.jessMakesAPicture.graphviz.GraphViz.{Edge, LineStyle, NodeId}
@@ -14,8 +10,8 @@ import scala.annotation.tailrec
 
 object MakeAPicture extends App {
 
-  val StartingProject = "rug-cli"
-  val GitHubUrl = "git@github.com:atomist/"
+  val StartingProject = "rug-runner"
+  val GitHubUrl = "git@github.com:atomisthq/"
   val MavenGroup = "com.atomist"
   val OutputName = "atomist"
   val BuildFileLocation = "bin/"
@@ -49,9 +45,12 @@ object MakeAPicture extends App {
     }
   }
 
-
-  val dependenciesOf: ProjectName => Seq[IntraOrgDependency] = git.bringDown andThen Maven.dependenciesFromPom(MavenGroup)
-
+  val dependenciesOf: ProjectName => Seq[IntraOrgDependency] = { dep =>
+    git.bringDown(dep) match {
+      case Some(dir) => Maven.dependenciesFromPom(MavenGroup)(dir)
+      case None => Seq()
+    }
+  }
   def findAllDependencies(startingProject: ProjectName): Seq[IntraOrgDependency] = {
 
     def go(allDeps: Map[ProjectName, Seq[IntraOrgDependency]], investigate: List[ProjectName]): Map[ProjectName, Seq[IntraOrgDependency]] = {

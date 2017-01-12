@@ -24,21 +24,26 @@ class GitHubOrg(url: String) {
     *
     * @return the cloned directory as a File
     */
-  def bringDown: String => File = { project =>
+  def bringDown: String => Option[File] = { project =>
     val existingDir = new File(project)
     if (existingDir.isDirectory) {
       if (FetchForUptodateness)
-        fetchIn(existingDir)
+        Some(fetchIn(existingDir))
       else
-        existingDir
+        Some(existingDir)
     }
     else {
       val gitUrl = s"$url$project"
       val exitCode = Seq("git", "clone", gitUrl).!
-      if (exitCode != 0) throw new RuntimeException(s"git clone $gitUrl failed with $exitCode")
-      val dir = new File(project)
-      if (!dir.isDirectory) throw new RuntimeException(s"git clone $gitUrl did not produce directory $project")
-      dir
+      if (exitCode != 0) {
+        println(s"git clone $gitUrl failed with $exitCode")
+        println(s"Skipping $project")
+        None
+      } else {
+        val dir = new File(project)
+        if (!dir.isDirectory) throw new RuntimeException(s"git clone $gitUrl did not produce directory $project")
+        Some(dir)
+      }
     }
   }
 
