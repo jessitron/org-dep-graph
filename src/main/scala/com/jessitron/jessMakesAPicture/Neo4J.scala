@@ -6,11 +6,12 @@ import com.jessitron.jessMakesAPicture.maven.Scope
 object Neo4J {
 
   type UniqueId = String
+  type Run = String
 
   case class ProjectNode(name: ProjectName, version: Version) {
 
-    def createSyntax(projectIds: Map[ProjectName, UniqueId])  : String =
-     s"""(${projectIds(name)} { name: "$name", version: "$version" })"""
+    def createSyntax(runId: Run, projectIds: Map[ProjectName, UniqueId])  : String =
+     s"""(${projectIds(name)} { name: "$name", version: "$version", asOf: "$runId" })"""
   }
 
   case class DependencyRelationship(parent: ProjectNode, child: ProjectNode, scope: Scope) {
@@ -28,13 +29,13 @@ object Neo4J {
    * versions as different nodes because let's face it, they're different programs.
    * Then, any project-versions that are in my computer but not enmeshed in the dependency web will be the extra nodes.
    */
-  def makeAPicture(relationships: Seq[DependencyRelationship], drawNodes: Seq[ProjectNode]): Unit = {
+  def makeAPicture(relationships: Seq[DependencyRelationship], drawNodes: Seq[ProjectNode], runId: Run): Unit = {
 
     val uniqueNames = Stream.from(1).map("p" + _).iterator
     val nodeIdByProjectName = drawNodes.map(pn => (pn.name, uniqueNames.next())).toMap
 
     val cypher = "CREATE " +
-      (drawNodes.map(_.createSyntax(nodeIdByProjectName)) ++ relationships.map(_.createSyntax(nodeIdByProjectName))).mkString(",\n")
+      (drawNodes.map(_.createSyntax(runId, nodeIdByProjectName)) ++ relationships.map(_.createSyntax(nodeIdByProjectName))).mkString(",\n")
 
     println(s"\n$cypher\n")
   }

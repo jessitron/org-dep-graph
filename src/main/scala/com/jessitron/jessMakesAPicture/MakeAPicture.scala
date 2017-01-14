@@ -17,6 +17,8 @@ object MakeAPicture extends App {
 
   val git = new GitHubOrg(GitHubUrl, fetch = false)
 
+  val runId = System.currentTimeMillis().toString
+
 
   private val investigateProject: ProjectName => (InOrgProject, Seq[IntraOrgDependency]) = { dep =>
     git.bringDown(dep) match {
@@ -50,7 +52,8 @@ object MakeAPicture extends App {
   val (projects, edges) = findAllDependencies(StartingProject)
   val r = GraphViz.makeAPicture(OutputName, edges.map(GraphVizInterop.dependencyEdge), GraphVizInterop.projectNode, projects.map(GraphVizInterop.projectNode))
   println(s"There is a picture for you in ${r.getAbsolutePath}")
-  val n = Neo4J.makeAPicture(edges.map(Neo4JInterop.dependencyEdge), projects.map(Neo4JInterop.projectNode))
+
+  val n = Neo4J.makeAPicture(edges.map(Neo4JInterop.dependencyEdge), projects.map(Neo4JInterop.projectNode), runId)
 
 
   val buildOrder = Linearize.tsort(edges.map { case dep => (dep.parent.name, dep.child.name) }).toList.reverse
