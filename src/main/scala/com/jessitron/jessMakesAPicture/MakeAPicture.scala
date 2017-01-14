@@ -19,36 +19,36 @@ object MakeAPicture extends App {
   val git = new GitHubOrg(GitHubUrl)
 
 
-  val dependenciesOf: ProjectName => Seq[IntraOrgDependency] = { dep =>
+  private val investigateProject: ProjectName => (InOrgProject, Seq[IntraOrgDependency]) = { dep =>
     git.bringDown(dep) match {
-      case Some(dir) => Maven.dependenciesFromPom(MavenGroup)(dir)
-      case None => Seq()
+      case Some(dir) => Maven.analyzePom(MavenGroup)(dir)
+      case None => (InOrgProject(dep, "not present"), Seq())
     }
   }
-  def findAllDependencies(startingProject: ProjectName): Seq[IntraOrgDependency] = {
+  def findAllDependencies(startingProject: ProjectName): (Seq[InOrgProject], Seq[IntraOrgDependency]) = {
 
-    def go(allDeps: Map[ProjectName, Seq[IntraOrgDependency]], investigate: List[ProjectName]): Map[ProjectName, Seq[IntraOrgDependency]] = {
+    def go(allDeps: Map[ProjectName, Seq[IntraOrgDependency]], allProjects: Seq[InOrgProject], investigate: List[ProjectName])
+    : (Seq[InOrgProject], Map[ProjectName, Seq[IntraOrgDependency]]) = {
       if (investigate.isEmpty)
-        allDeps
+        (allProjects, allDeps)
       else {
         val next :: rest = investigate
         if (allDeps.contains(next))
-          go(allDeps, rest)
+          go(allDeps, allProjects, rest)
         else {
-          val deps = dependenciesOf(next)
-          go(allDeps + (next -> deps), rest ++ deps.map(_.child.name))
+          val (project, deps) = investigateProject(next)
+          go(allDeps + (next -> deps), allProjects :+ project, rest ++ deps.map(_.child.name))
         }
       }
     }
 
-    val allDeps = go(Map(), List(startingProject))
+    val (allProjects, allDeps) = go(Map(), Seq(), List(startingProject))
 
-    allDeps.values.flatten.toSeq
+    (allProjects, allDeps.values.flatten.toSeq)
   }
 
 
-  val edges = findAllDependencies(StartingProject)
-  val projects = edges.map(_.parent)
+  val (projects, edges) = findAllDependencies(StartingProject)
   val r = GraphViz.makeAPicture(OutputName, edges.map(GraphVizInterop.dependencyEdge), GraphVizInterop.projectNode, projects.map(GraphVizInterop.projectNode))
   println(s"There is a picture for you in ${r.getAbsolutePath}")
   val n = Neo4J.makeAPicture(edges.map(Neo4JInterop.dependencyEdge), projects.map(Neo4JInterop.projectNode))

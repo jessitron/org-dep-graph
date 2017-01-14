@@ -12,11 +12,9 @@ object Maven {
 
   case class IntraOrgDependency(parent: InOrgProject, child: InOrgProject, scope: Option[String]) // todo: use Scope trait
 
-  def dependenciesFromPom(groupId: String): File => Seq[IntraOrgDependency] = { projectDir: File =>
+  def analyzePom(groupId: String): File => (InOrgProject, Seq[IntraOrgDependency]) = { projectDir: File =>
     val projectXml = pomXML(projectDir)
-    val parentVersion = projectVersion(projectXml)
-    val parentName = (projectXml \ "artifactId").text
-    val parent = InOrgProject(parentName, parentVersion)
+    val parent = thisProject(projectXml)
 
     val properties = projectProperties(projectXml)
 
@@ -31,7 +29,7 @@ object Maven {
       IntraOrgDependency(parent, child, if (scope.isEmpty) scala.None else Some(scope))
     }
 
-    intraOrgDeps.map(interpretDependencyNode)
+    (parent, intraOrgDeps.map(interpretDependencyNode))
   }
 
   private def projectProperties(pomXML: Elem): Map[String, String] = {
@@ -54,6 +52,14 @@ object Maven {
       throw new RuntimeException(s"No pom.xml found in ${projectDir.getName}")
     }
     XML.loadFile(pom)
+  }
+
+
+  private def thisProject(projectXml: Elem): InOrgProject = {
+    val parentVersion = projectVersion(projectXml)
+    val parentName = (projectXml \ "artifactId").text
+    InOrgProject(parentName, parentVersion)
+
   }
 
   private def projectVersion(pomXML: Elem): Version = {
