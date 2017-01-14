@@ -10,7 +10,7 @@ object Maven {
   type Version = String
   case class InOrgProject(name: ProjectName, version: Version)
 
-  case class IntraOrgDependency(parent: InOrgProject, child: InOrgProject, scope: Option[String])
+  case class IntraOrgDependency(parent: InOrgProject, child: InOrgProject, scope: Option[String]) // todo: use Scope trait
 
   def dependenciesFromPom(groupId: String): File => Seq[IntraOrgDependency] = { projectDir: File =>
     val projectXml = pomXML(projectDir)
@@ -62,3 +62,8 @@ object Maven {
 
 
 }
+
+sealed trait Scope
+case object Compile extends Scope
+case object Test extends Scope
+case object Provided extends Scope

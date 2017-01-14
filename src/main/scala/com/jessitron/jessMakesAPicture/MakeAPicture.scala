@@ -10,40 +10,14 @@ import scala.annotation.tailrec
 
 object MakeAPicture extends App {
 
-  val StartingProject = "rug-runner"
-  val GitHubUrl = "git@github.com:atomisthq/"
+  val StartingProject = "rug-cli"
+  val GitHubUrl = "git@github.com:atomist/"
   val MavenGroup = "com.atomist"
   val OutputName = "atomist"
   val BuildFileLocation = "bin/"
 
   val git = new GitHubOrg(GitHubUrl)
 
-  def dependencyEdge: IntraOrgDependency => Edge[InOrgProject] = {
-    dep =>
-      new Edge[InOrgProject] {
-        override def parent: InOrgProject = dep.parent
-
-        override def child: InOrgProject = dep.child
-
-        val label = Some(dep.scope match {
-          case None => dep.child.version
-          case Some(sc) => s"${dep.child.version} ($sc)"
-        })
-        override val style: Option[LineStyle] =
-          dep.scope.map {
-            case "test" => GraphViz.Dashed
-            case "provided" => GraphViz.Dotted
-          }
-      }
-  }
-
-  def projectNode: InOrgProject => GraphViz.Node = { project =>
-    new GraphViz.Node {
-      override def id: NodeId = NodeId(GraphViz.dashesToUnderscores(project.name))
-
-      override def label: String = s"${project.name} ${project.version}"
-    }
-  }
 
   val dependenciesOf: ProjectName => Seq[IntraOrgDependency] = { dep =>
     git.bringDown(dep) match {
@@ -74,9 +48,10 @@ object MakeAPicture extends App {
 
 
   val edges = findAllDependencies(StartingProject)
-  val projectNodes = edges.map(_.parent).map(projectNode)
-  val r = GraphViz.makeAPicture(OutputName, edges.map(dependencyEdge), projectNode, projectNodes)
+  val projects = edges.map(_.parent)
+  val r = GraphViz.makeAPicture(OutputName, edges.map(GraphVizInterop.dependencyEdge), GraphVizInterop.projectNode, projects.map(GraphVizInterop.projectNode))
   println(s"There is a picture for you in ${r.getAbsolutePath}")
+  val n = Neo4J.makeAPicture(edges.map(Neo4JInterop.dependencyEdge), projects.map(Neo4JInterop.projectNode))
 
 
   val buildOrder = Linearize.tsort(edges.map { case dep => (dep.parent.name, dep.child.name) }).toList.reverse
