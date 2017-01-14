@@ -10,13 +10,34 @@ import scala.annotation.tailrec
 
 object MakeAPicture extends App {
 
-  val StartingProject = "rug-cli"
-  val GitHubUrl = "git@github.com:atomist/"
+  val Usage = "$0 [--fetch] <top-level project...>"
+
+  def processArgs(): (Seq[String], Boolean) = {
+      var fetch = false
+      var projects: Seq[String] = Seq()
+    for (arg <- args) {
+      arg match {
+        case "--fetch" => fetch = true
+        case other => projects = projects :+ other
+      }
+    }
+
+    if (projects.size < 1) {
+      System.err.println("No top-level project supplied")
+    }
+
+    (projects, fetch)
+  }
+
+
+
+  val (startingProjects, fetch) = processArgs()
+  val GitHubOrgs = Seq("atomist","atomisthq")
   val MavenGroup = "com.atomist"
   val OutputName = "atomist"
   val BuildFileLocation = "bin/"
 
-  val git = new GitHubOrg(GitHubUrl, fetch = false)
+  val git = new GitHubOrg(GitHubOrgs, fetch = fetch)
 
   val runId = System.currentTimeMillis().toString
 
@@ -27,7 +48,7 @@ object MakeAPicture extends App {
       case None => (InOrgProject(dep, "not present"), Seq())
     }
   }
-  def findAllDependencies(startingProject: ProjectName): (Seq[InOrgProject], Seq[IntraOrgDependency]) = {
+  def findAllDependencies(startingProjects: Seq[ProjectName]): (Seq[InOrgProject], Seq[IntraOrgDependency]) = {
 
     def go(allDeps: Map[ProjectName, Seq[IntraOrgDependency]], allProjects: Seq[InOrgProject], investigate: List[ProjectName])
     : (Seq[InOrgProject], Map[ProjectName, Seq[IntraOrgDependency]]) = {
@@ -44,13 +65,13 @@ object MakeAPicture extends App {
       }
     }
 
-    val (allProjects, allDeps) = go(Map(), Seq(), List(startingProject))
+    val (allProjects, allDeps) = go(Map(), Seq(), startingProjects.toList)
 
     (allProjects, allDeps.values.flatten.toSeq)
   }
 
 
-  val (projects, edges) = findAllDependencies(StartingProject)
+  val (projects, edges) = findAllDependencies(startingProjects)
   val r = GraphViz.makeAPicture(OutputName, edges.map(GraphVizInterop.dependencyEdge), GraphVizInterop.projectNode, projects.map(GraphVizInterop.projectNode))
   println(s"There is a picture for you in ${r.getAbsolutePath}")
 
@@ -82,7 +103,7 @@ object Linearize {
       if (noPreds.isEmpty) {
         if (hasPreds.isEmpty) done else sys.error(hasPreds.toString)
       } else {
-        val found = noPreds.map { _._1 }
+        val found = noPreds.keys
         tsort(hasPreds.mapValues { _ -- found }, done ++ found)
       }
     }

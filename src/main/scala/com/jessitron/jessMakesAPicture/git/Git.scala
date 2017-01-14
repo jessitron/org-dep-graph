@@ -2,7 +2,13 @@ package com.jessitron.jessMakesAPicture.git
 
 import java.io.File
 
-class GitHubOrg(url: String, fetch: Boolean = true) {
+
+object GitHub {
+  type Org = String
+  type Repo = String
+}
+
+class GitHubOrg(orgs: Seq[GitHub.Org], fetch: Boolean = true) {
 
   import sys.process._
 
@@ -32,17 +38,28 @@ class GitHubOrg(url: String, fetch: Boolean = true) {
         Some(existingDir)
     }
     else {
-      val gitUrl = s"$url$project"
-      val exitCode = Seq("git", "clone", gitUrl).!
-      if (exitCode != 0) {
-        println(s"git clone $gitUrl failed with $exitCode")
-        println(s"Skipping $project")
-        None
-      } else {
-        val dir = new File(project)
-        if (!dir.isDirectory) throw new RuntimeException(s"git clone $gitUrl did not produce directory $project")
-        Some(dir)
-      }
+      clone(project, orgs)
+    }
+  }
+
+  private def clone(project: GitHub.Repo, possibleOrgs: Seq[GitHub.Org] ): Option[File] = {
+    var successful = false
+
+    val urls = orgs.map { org => s"git@github.com:$org/$project" }
+
+    for (url <- urls if !successful) {
+      val exitCode = Seq("git", "clone", url).!
+      if (exitCode == 0)
+        successful = true
+    }
+    if (successful) {
+      val dir = new File(project)
+      if (!dir.isDirectory) throw new RuntimeException(s"git clone did not produce directory $project")
+      Some(dir)
+    } else {
+      println(s"git clone failed at all of ${urls.mkString(" ")}")
+      println(s"Skipping $project")
+      None
     }
   }
 

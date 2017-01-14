@@ -40,7 +40,7 @@ object BuildScript {
         println("Build file is already there, no updates")
         return location
       }
-      println("About to overwrite build file")
+      // println("About to overwrite build file")
     }
 
     // this will fail if the location points to a dir that doesn't exist
