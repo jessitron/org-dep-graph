@@ -5,21 +5,18 @@ import org.neo4j.driver.v1._
 
 object Connectivity {
 
-  val driver: Driver = GraphDatabase.driver("bolt://localhost:7687", AuthTokens.basic("neo4j", "neo4j"))
-  val session: Session = driver.session()
+  def runCypher(statements:Seq[String]) = {
 
-  session.run("CREATE (a:Person {name: {name}, title: {title}})",
-    Values.parameters("name", "Arthur", "title", "King"))
+    val driver: Driver = GraphDatabase.driver("bolt://localhost:7687", AuthTokens.basic("neo4j", "jessitron"))
+    val session: Session = driver.session()
 
-  val result: StatementResult = session.run("MATCH (a:Person) WHERE a.name = {name} " +
-    "RETURN a.name AS name, a.title AS title",
-    Values.parameters("name", "Arthur"))
-  while (result.hasNext) {
-    val record : Record = result.next()
-    System.out.println(record.get("title").asString() + " " + record.get("name").asString())
+    for (statement <- statements) {
+      val result: StatementResult = session.run(statement,
+        Values.parameters())
+    }
+
+    session.close()
+    driver.close()
   }
-
-  session.close()
-  driver.close()
 
 }

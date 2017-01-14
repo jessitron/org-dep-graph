@@ -37,16 +37,28 @@ object Neo4J {
     val cypher = "CREATE " +
       (drawNodes.map(_.createSyntax(runId, nodeIdByProjectName)) ++ relationships.map(_.createSyntax(nodeIdByProjectName))).mkString(",\n")
 
-    println(s"This will delete all Project nodes not created by this run:\n\n${deleteOthers(runId)}\n")
+    try {
+      Connectivity.runCypher(Seq(cypher, deleteOthers(runId)))
+    } catch {
+      case e: Exception =>
+         println(s"Unable to run the cypher because: ${e.getMessage}")
+         println(s"Here is the cypher I would have run:\n\n$cypher\n")
+    }
 
-    println(s"\n$cypher\n")
+    println(s"See the relationships at http://localhost:7474 with:\n\n${matchQuery(runId)}\n")
+  }
+
+  def matchQuery(run: Run):String = {
+    s"""MATCH (p: Project)
+       |   WHERE p.asOf = "$run"
+       |RETURN p""".stripMargin
   }
 
   def deleteOthers(run: Run): String = {
-    s"""MATCH (a:Project), (b:Project)
-       |    WHERE a.asOf <> "${run}" AND b.asOf <> "${run}"
-       |OPTIONAL MATCH (a)-[r1]-(), (b)-[r2]-()
-       |DELETE a, b, r1, r2""".stripMargin
+    s"""MATCH (a:Project)
+       |    WHERE a.asOf <> "${run}"
+       |OPTIONAL MATCH (a)-[r1]-()
+       |DELETE a, r1""".stripMargin
   }
 
 }
