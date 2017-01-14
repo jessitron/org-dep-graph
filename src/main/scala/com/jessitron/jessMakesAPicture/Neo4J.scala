@@ -16,7 +16,7 @@ object Neo4J {
 
   case class DependencyRelationship(parent: ProjectNode, child: ProjectNode, scope: Scope) {
     def createSyntax(projectIds: Map[ProjectName, UniqueId]) : String =
-      s"""(${projectIds(parent.name)})-[:DEPENDS_ON]->(${projectIds(child.name)})"""
+      s"""(${projectIds(parent.name)})-[:DEPENDS_ON { scope: "${scope.toString().toLowerCase()}", version:"${child.version}" }]->(${projectIds(child.name)})"""
   }
 
 
@@ -37,7 +37,16 @@ object Neo4J {
     val cypher = "CREATE " +
       (drawNodes.map(_.createSyntax(runId, nodeIdByProjectName)) ++ relationships.map(_.createSyntax(nodeIdByProjectName))).mkString(",\n")
 
+    println(s"This will delete all Project nodes not created by this run:\n\n${deleteOthers(runId)}\n")
+
     println(s"\n$cypher\n")
+  }
+
+  def deleteOthers(run: Run): String = {
+    s"""MATCH (a:Project), (b:Project)
+       |    WHERE a.asOf <> "${run}" AND b.asOf <> "${run}"
+       |OPTIONAL MATCH (a)-[r1]-(), (b)-[r2]-()
+       |DELETE a, b, r1, r2""".stripMargin
   }
 
 }
