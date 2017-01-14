@@ -4,6 +4,7 @@ import com.jessitron.jessMakesAPicture.git.GitHubOrg
 import com.jessitron.jessMakesAPicture.graphviz.GraphViz
 import com.jessitron.jessMakesAPicture.maven.{BuildScript, Maven}
 import com.jessitron.jessMakesAPicture.maven.Maven.{InOrgProject, IntraOrgDependency, ProjectName}
+import com.jessitron.jessMakesAPicture.neo.Neo4J
 
 import scala.annotation.tailrec
 

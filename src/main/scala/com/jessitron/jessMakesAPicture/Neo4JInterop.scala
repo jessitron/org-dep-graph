@@ -1,8 +1,9 @@
 package com.jessitron.jessMakesAPicture
 
-import com.jessitron.jessMakesAPicture.Neo4J.{DependencyRelationship, ProjectNode}
+import com.jessitron.jessMakesAPicture.neo.Neo4J.{DependencyRelationship, ProjectNode}
 import com.jessitron.jessMakesAPicture.maven.{Compile, Provided, Test}
 import com.jessitron.jessMakesAPicture.maven.Maven.{InOrgProject, IntraOrgDependency}
+import com.jessitron.jessMakesAPicture.neo.Neo4J
 
 object Neo4JInterop {
 

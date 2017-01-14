@@ -1,4 +1,4 @@
-package com.jessitron.jessMakesAPicture
+package com.jessitron.jessMakesAPicture.neo
 
 import com.jessitron.jessMakesAPicture.maven.Maven.{ProjectName, Version}
 import com.jessitron.jessMakesAPicture.maven.Scope
