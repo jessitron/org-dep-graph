@@ -15,7 +15,7 @@ object Neo4J {
 
   case class DependencyRelationship(parent: ProjectNode, child: ProjectNode, scope: Scope) {
     def createSyntax(projectIds: Map[ProjectName, UniqueId]) : String =
-      s"""(${projectIds(parent.name)}-[:DEPENDS_ON]->(${projectIds(child.name)})"""
+      s"""(${projectIds(parent.name)})-[:DEPENDS_ON]->(${projectIds(child.name)})"""
   }
 
 
@@ -33,9 +33,10 @@ object Neo4J {
     val uniqueNames = Stream.from(1).map("p" + _).iterator
     val nodeIdByProjectName = drawNodes.map(pn => (pn.name, uniqueNames.next())).toMap
 
-    val cypher = "CREATE " + drawNodes.map(_.createSyntax(nodeIdByProjectName)).mkString(",\n") + relationships.map(_.createSyntax(nodeIdByProjectName)).mkString(", ")
+    val cypher = "CREATE " +
+      (drawNodes.map(_.createSyntax(nodeIdByProjectName)) ++ relationships.map(_.createSyntax(nodeIdByProjectName))).mkString(",\n")
 
-    println(cypher)
+    println(s"\n$cypher\n")
   }
 
 }

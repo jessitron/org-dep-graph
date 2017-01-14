@@ -2,7 +2,6 @@ package com.jessitron.jessMakesAPicture
 
 import com.jessitron.jessMakesAPicture.git.GitHubOrg
 import com.jessitron.jessMakesAPicture.graphviz.GraphViz
-import com.jessitron.jessMakesAPicture.graphviz.GraphViz.{Edge, LineStyle, NodeId}
 import com.jessitron.jessMakesAPicture.maven.{BuildScript, Maven}
 import com.jessitron.jessMakesAPicture.maven.Maven.{InOrgProject, IntraOrgDependency, ProjectName}
 
@@ -16,7 +15,7 @@ object MakeAPicture extends App {
   val OutputName = "atomist"
   val BuildFileLocation = "bin/"
 
-  val git = new GitHubOrg(GitHubUrl)
+  val git = new GitHubOrg(GitHubUrl, fetch = false)
 
 
   private val investigateProject: ProjectName => (InOrgProject, Seq[IntraOrgDependency]) = { dep =>

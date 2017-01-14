@@ -2,11 +2,10 @@ package com.jessitron.jessMakesAPicture.git
 
 import java.io.File
 
-class GitHubOrg(url: String) {
+class GitHubOrg(url: String, fetch: Boolean = true) {
 
   import sys.process._
 
-  val FetchForUptodateness = true
 
   private def fetchIn(dir: File): File = {
     println(s"fetching in ${dir.getName}")
@@ -27,7 +26,7 @@ class GitHubOrg(url: String) {
   def bringDown: String => Option[File] = { project =>
     val existingDir = new File(project)
     if (existingDir.isDirectory) {
-      if (FetchForUptodateness)
+      if (fetch)
         Some(fetchIn(existingDir))
       else
         Some(existingDir)
