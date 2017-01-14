@@ -11,7 +11,7 @@ object Neo4J {
   case class ProjectNode(name: ProjectName, version: Version) {
 
     def createSyntax(runId: Run, projectIds: Map[ProjectName, UniqueId])  : String =
-     s"""(${projectIds(name)} { name: "$name", version: "$version", asOf: "$runId" })"""
+     s"""(${projectIds(name)}:Project { name: "$name", version: "$version", asOf: "$runId" })"""
   }
 
   case class DependencyRelationship(parent: ProjectNode, child: ProjectNode, scope: Scope) {
