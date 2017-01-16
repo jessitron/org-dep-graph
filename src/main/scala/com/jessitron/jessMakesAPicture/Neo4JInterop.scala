@@ -9,8 +9,8 @@ object Neo4JInterop {
 
   def projectNode(p: CombinedProjectData): Neo4J.ProjectNode = {
     p match {
-      case UnfoundProject(n) => ProjectNode(name = n, version = "not found!")
-      case FoundProject(maven, git) => ProjectNode(name = maven.name, version = maven.version)
+      case UnfoundProject(n) => ProjectNode(name = n, version = "not found!", branch = "not found!")
+      case FoundProject(maven, git) => ProjectNode(name = maven.name, version = maven.version, branch = git.currentBranch)
     }
   }
 

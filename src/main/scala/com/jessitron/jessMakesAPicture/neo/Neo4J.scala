@@ -1,5 +1,6 @@
 package com.jessitron.jessMakesAPicture.neo
 
+import com.jessitron.jessMakesAPicture.git.GitHub
 import com.jessitron.jessMakesAPicture.maven.Maven.{ProjectName, Version}
 import com.jessitron.jessMakesAPicture.maven.Scope
 
@@ -8,10 +9,10 @@ object Neo4J {
   type UniqueId = String
   type Run = String
 
-  case class ProjectNode(name: ProjectName, version: Version) {
+  case class ProjectNode(name: ProjectName, version: Version, branch: GitHub.Branch) {
 
     def createSyntax(runId: Run, projectIds: Map[ProjectName, UniqueId])  : String =
-     s"""(${projectIds(name)}:Project { name: "$name", version: "$version", asOf: "$runId" })"""
+     s"""(${projectIds(name)}:Project { name: "$name", version: "$version", branch: "$branch", asOf: "$runId" })"""
   }
 
   type ProjectNodeIdentifyingFactor = ProjectName
