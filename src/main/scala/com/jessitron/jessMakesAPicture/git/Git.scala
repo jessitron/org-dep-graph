@@ -6,11 +6,23 @@ import java.io.File
 object GitHub {
   type Org = String
   type Repo = String
+
+  type Branch = String
+
+  type HowFar = Int
+}
+
+case class GitRepo(contents: File, currentBranch: GitHub.Branch, behind: GitHub.HowFar, ahead: GitHub.HowFar, dirty: Boolean)
+
+object GitRepo {
+  def justCloned(contents:File) = GitRepo(contents, "master", 0, 0, false)
 }
 
 class GitHubOrg(orgs: Seq[GitHub.Org], fetch: Boolean = true) {
 
   import sys.process._
+
+
 
 
   private def fetchIn(dir: File): File = {
@@ -29,18 +41,20 @@ class GitHubOrg(orgs: Seq[GitHub.Org], fetch: Boolean = true) {
     *
     * @return the cloned directory as a File
     */
-  def bringDown: String => Option[File] = { project =>
+  def bringDown: String => Option[GitRepo] = { project =>
     val existingDir = new File(project)
     if (existingDir.isDirectory) {
       if (fetch)
-        Some(fetchIn(existingDir))
+        Some(CheckGitStatus.checkStatus(fetchIn(existingDir)))
       else
-        Some(existingDir)
+        Some(CheckGitStatus.checkStatus(existingDir))
     }
     else {
-      clone(project, orgs)
+      clone(project, orgs).map(GitRepo.justCloned)
     }
   }
+
+
 
   private def clone(project: GitHub.Repo, possibleOrgs: Seq[GitHub.Org] ): Option[File] = {
     var successful = false
@@ -63,4 +77,34 @@ class GitHubOrg(orgs: Seq[GitHub.Org], fetch: Boolean = true) {
     }
   }
 
+}
+
+object CheckGitStatus {
+
+  import sys.process._
+  def checkStatus(projectDir: File) = {
+    val statusProcess = Seq("git", "-C" , projectDir.getPath, "status", "--porcelain", "--branch").lineStream
+    /* ## banana...origin/banana [ahead 1, behind 1]
+       A  file-in-index
+       ?? untracked-file
+     */
+    val branchLine = statusProcess.head
+    println(s"Branch line: ${branchLine}")
+    val changes = statusProcess.length - 1
+    println(s"There are ${changes} changes")
+    if (branchLine == "## HEAD (no branch)") {
+      GitRepo(projectDir, "HEAD", 0, 0, changes > 0)
+    } else {
+      val branch = branchLine.substring(3).split("\\.").head
+      val ahead: Int = if (branchLine.contains("ahead")) branchLine.split("ahead ")(1).split("[,\\]]").head.toInt else 0
+      val behind: Int = if (branchLine.contains("behind")) branchLine.split("behind ")(1).split("\\]").head.toInt else 0
+      GitRepo(projectDir, branch, ahead, behind, changes > 0)
+    }
+
+  }
+
+  def main(args: Array[String]): Unit = {
+   val result =  checkStatus(new File("/tmp/foo2"))
+    println(result)
+  }
 }

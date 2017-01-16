@@ -14,9 +14,11 @@ object Neo4J {
      s"""(${projectIds(name)}:Project { name: "$name", version: "$version", asOf: "$runId" })"""
   }
 
-  case class DependencyRelationship(parent: ProjectNode, child: ProjectNode, scope: Scope) {
-    def createSyntax(projectIds: Map[ProjectName, UniqueId]) : String =
-      s"""(${projectIds(parent.name)})-[:DEPENDS_ON { scope: "${scope.toString().toLowerCase()}", version:"${child.version}" }]->(${projectIds(child.name)})"""
+  type ProjectNodeIdentifyingFactor = ProjectName
+
+  case class DependencyRelationship(parent: ProjectNodeIdentifyingFactor, child: ProjectNodeIdentifyingFactor, childVersion: Version,  scope: Scope) {
+    def createSyntax(projectIds: Map[ProjectNodeIdentifyingFactor, UniqueId]) : String =
+      s"""(${projectIds(parent)})-[:DEPENDS_ON { scope: "${scope.toString().toLowerCase()}", version:"${childVersion}" }]->(${projectIds(child)})"""
   }
 
 

@@ -24,13 +24,26 @@ object GraphVizInterop {
       }
   }
 
-  def projectNode: InOrgProject => GraphViz.Node = { project =>
-    new GraphViz.Node {
-      override def id: NodeId = NodeId(GraphViz.dashesToUnderscores(project.name))
+  def projectNode: CombinedProjectData => GraphViz.Node = { project =>
 
-      override def label: String = s"${project.name} ${project.version}"
+    project match {
+      case UnfoundProject(name) =>
+        new GraphViz.Node {
+          override def id: NodeId = NodeId(project.name)
+
+          override def label = s"$name (not found!)"
+        }
+      case FoundProject(iop, repo) =>
+        new GraphViz.Node {
+          override def id: NodeId = NodeId(project.name)
+
+          override def label: String = s"${project.name} ${iop.version}"
+        }
     }
   }
 
+  def projectNodeId: InOrgProject => GraphViz.NodeId = { p =>
+    NodeId(p.name)
+  }
 
 }

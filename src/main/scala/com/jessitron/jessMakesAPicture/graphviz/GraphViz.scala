@@ -17,7 +17,7 @@ object GraphViz {
 
   def stringToNode(nodeId: String): Node = {
     new Node {
-      val id = NodeId(dashesToUnderscores(nodeId))
+      val id = NodeId(nodeId)
     }
   }
 
@@ -27,8 +27,10 @@ object GraphViz {
 
   case object Dotted extends LineStyle
 
-  case class NodeId(id: String) {
-    if (id.contains("-")) throw new IllegalArgumentException("No dashes allowed in the id")
+  case class NodeId(private val _id: String) {
+    val id = dashesToUnderscores(_id)
+
+    val idString = id
   }
 
   trait Node {
@@ -49,13 +51,13 @@ object GraphViz {
     def style: Option[LineStyle] = None
   }
 
-  private def dag[A](name: String, edges: Seq[Edge[A]], toNode: A => Node, nodesToLabel: Seq[Node]): String = {
+  private def dag[A](name: String, edges: Seq[Edge[A]], toNode: A => NodeId, nodesToLabel: Seq[Node]): String = {
     val formattedEdges = edges.map(formatEdge(toNode))
     val formattedNodes = nodesToLabel.map(formatNode).distinct
     s"digraph $name " + (formattedEdges ++ formattedNodes).mkString("{\n", "\n", "\n}")
   }
 
-  private def formatEdge[A](toNode: A => Node)(e: Edge[A]): String = {
+  private def formatEdge[A](toNode: A => NodeId)(e: Edge[A]): String = {
     val modifiers =
       e.label.map { l => s"""label="$l"""" } ++
         e.style.map { s => s"""style="${s.toString.toLowerCase}"""" }
@@ -66,13 +68,13 @@ object GraphViz {
     s"""${node.idString} [label="${node.label}"];"""
   }
 
-  def dashesToUnderscores(in: String): String = {
+  private def dashesToUnderscores(in: String): String = {
     in.replace('-', '_')
   }
 
   import sys.process._
 
-  def makeAPicture[A](name: String, edges: Seq[Edge[A]], toNode: A => Node, nodesToLabel: Seq[Node] = Seq()): File = {
+  def makeAPicture[A](name: String, edges: Seq[Edge[A]], toNode: A => NodeId, nodesToLabel: Seq[Node] = Seq()): File = {
     val dotText = dag(name, edges, toNode, nodesToLabel)
     val dotFile = writeDotFile(name, dotText)
 

@@ -2,13 +2,16 @@ package com.jessitron.jessMakesAPicture
 
 import com.jessitron.jessMakesAPicture.neo.Neo4J.{DependencyRelationship, ProjectNode}
 import com.jessitron.jessMakesAPicture.maven.{Compile, Provided, Test}
-import com.jessitron.jessMakesAPicture.maven.Maven.{InOrgProject, IntraOrgDependency}
+import com.jessitron.jessMakesAPicture.maven.Maven.{IntraOrgDependency}
 import com.jessitron.jessMakesAPicture.neo.Neo4J
 
 object Neo4JInterop {
 
-  def projectNode(maven: InOrgProject): Neo4J.ProjectNode = {
-    ProjectNode(name = maven.name, version = maven.version)
+  def projectNode(p: CombinedProjectData): Neo4J.ProjectNode = {
+    p match {
+      case UnfoundProject(n) => ProjectNode(name = n, version = "not found!")
+      case FoundProject(maven, git) => ProjectNode(name = maven.name, version = maven.version)
+    }
   }
 
   def dependencyEdge(dep: IntraOrgDependency):  Neo4J.DependencyRelationship = {
@@ -19,7 +22,7 @@ object Neo4JInterop {
       case Some("test") => Test
       case other => throw new RuntimeException(s"Please add support for ${other} scope")
     }
-    DependencyRelationship(projectNode(dep.parent), projectNode(dep.child), scope)
+    DependencyRelationship(dep.parent.name, dep.child.name, dep.child.version, scope)
   }
 
 }
