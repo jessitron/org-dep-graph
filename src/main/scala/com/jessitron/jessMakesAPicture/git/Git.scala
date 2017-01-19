@@ -89,9 +89,7 @@ object CheckGitStatus {
        ?? untracked-file
      */
     val branchLine = statusProcess.head
-    println(s"Branch line: ${branchLine}")
     val changes = statusProcess.length - 1
-    println(s"There are ${changes} changes")
     if (branchLine == "## HEAD (no branch)") {
       GitRepo(projectDir, "HEAD", 0, 0, changes > 0)
     } else {

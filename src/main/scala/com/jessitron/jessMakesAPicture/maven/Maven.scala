@@ -8,6 +8,7 @@ object Maven {
 
   type ProjectName = String
   type Version = String
+  type Group = String
   case class InOrgProject(name: ProjectName, version: Version)
 
   case class IntraOrgDependency(parent: InOrgProject, child: InOrgProject, scope: Option[String]) // todo: use Scope trait

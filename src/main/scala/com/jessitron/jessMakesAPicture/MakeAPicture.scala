@@ -79,16 +79,26 @@ object MakeAPicture extends App {
 
   val n = Neo4J.makeAPicture(edges.map(Neo4JInterop.dependencyEdge), projects.map(Neo4JInterop.projectNode), runId)
 
+  val localProjects = projects.collect{ case FoundProject(a, _) => a}
+  val localProjectNames = localProjects.map(_.name)
 
   val buildOrder = Linearize.tsort(edges.map { case dep => (dep.parent.name, dep.child.name) }).toList.reverse
   println(s"Here is an order for building: ${buildOrder}")
+  val buildThese = buildOrder.filter(localProjectNames.contains(_))
 
 
-  Seq("install" -> "mvn install", "clean" -> "mvn clean", "fetch" -> "git fetch && git merge --ff-only").foreach { case (name, command) =>
+  Seq(
+    "install" -> "mvn install",
+    "clean" -> "mvn clean",
+    "fetch" -> "git fetch && ( git merge --ff-only || echo \"not able to fast-forward merge\" )",
+    "newbranch" -> "git checkout $1 2>/dev/null || git checkout -b $1").foreach { case (name, command) =>
     val scriptName = s"${name}_all"
-    val buildScript = BuildScript.createBuildScript(BuildFileLocation, command, scriptName, buildOrder)
+    val buildScript = BuildScript.createBuildScript(BuildFileLocation, command, scriptName, buildThese)
     println(s"There is a script for you in $buildScript")
   }
+
+  val localVersionsScript = BuildScript.createScriptToLinkLocalVersions(BuildFileLocation, MavenGroup, edges, localProjects)
+  println(s"There is a script for you in $localVersionsScript")
 
 }
 
