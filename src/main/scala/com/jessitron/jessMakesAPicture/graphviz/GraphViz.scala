@@ -33,12 +33,27 @@ object GraphViz {
     val idString = id
   }
 
+  sealed trait NodeColor { def code: String }
+  case object White extends NodeColor {
+    def code = "white"
+  }
+  case object LightBlue extends NodeColor {
+     def code = "lightblue"
+  }
+  object NodeColor {
+    val Default = White
+  }
+
+
+
   trait Node {
     def id: NodeId
 
     final def idString: String = id.id
 
     def label: String = idString
+
+    def color: NodeColor = NodeColor.Default
   }
 
   trait Edge[A] {
@@ -54,7 +69,7 @@ object GraphViz {
   private def dag[A](name: String, edges: Seq[Edge[A]], toNode: A => NodeId, nodesToLabel: Seq[Node]): String = {
     val formattedEdges = edges.map(formatEdge(toNode))
     val formattedNodes = nodesToLabel.map(formatNode).distinct
-    s"digraph $name " + (formattedEdges ++ formattedNodes).mkString("{\n", "\n", "\n}")
+    s"digraph $name " + (formattedNodes ++ formattedEdges).mkString("{\n", "\n", "\n}")
   }
 
   private def formatEdge[A](toNode: A => NodeId)(e: Edge[A]): String = {
@@ -65,7 +80,11 @@ object GraphViz {
   }
 
   private def formatNode(node: Node): String = {
-    s"""${node.idString} [label="${node.label}"];"""
+    val (preset, postset) = if (node.color != NodeColor.Default) {
+      (s"""node [style="filled",fillcolor=${node.color.code}];\n"""
+       , s"\nnode [fillcolor=${NodeColor.Default.code}];")
+    } else ("","")
+    preset + s"""${node.idString} [label="${node.label}"];""" + postset
   }
 
   private def dashesToUnderscores(in: String): String = {
@@ -99,6 +118,8 @@ object GraphViz {
       println(Files.readAllBytes(dotFile))
       throw new RuntimeException("Failure running dot.")
     }
+
+   // Files.delete(dotFile)
 
     new File(pictureFile)
   }

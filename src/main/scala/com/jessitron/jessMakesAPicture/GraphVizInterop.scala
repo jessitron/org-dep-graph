@@ -1,7 +1,7 @@
 package com.jessitron.jessMakesAPicture
 
 import com.jessitron.jessMakesAPicture.graphviz.GraphViz
-import com.jessitron.jessMakesAPicture.graphviz.GraphViz.{Edge, LineStyle, NodeId}
+import com.jessitron.jessMakesAPicture.graphviz.GraphViz._
 import com.jessitron.jessMakesAPicture.maven.Maven.{InOrgProject, IntraOrgDependency}
 
 object GraphVizInterop {
@@ -23,7 +23,7 @@ object GraphVizInterop {
           }
       }
   }
-`
+
   def projectNode: CombinedProjectData => GraphViz.Node = { project =>
 
     project match {
@@ -38,6 +38,8 @@ object GraphVizInterop {
           override def id: NodeId = NodeId(project.name)
 
           override def label: String = s"${project.name} ${iop.version}\n${repo.currentBranch}"
+
+          override def color: NodeColor = if (repo.dirty) LightBlue else White
         }
     }
   }
