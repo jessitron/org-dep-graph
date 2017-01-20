@@ -23,7 +23,7 @@ object GraphVizInterop {
           }
       }
   }
-
+`
   def projectNode: CombinedProjectData => GraphViz.Node = { project =>
 
     project match {
@@ -37,7 +37,7 @@ object GraphVizInterop {
         new GraphViz.Node {
           override def id: NodeId = NodeId(project.name)
 
-          override def label: String = s"${project.name} ${iop.version}"
+          override def label: String = s"${project.name} ${iop.version}\n${repo.currentBranch}"
         }
     }
   }
