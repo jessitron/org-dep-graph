@@ -1,0 +1,16 @@
+---
+kind: "operation"
+client: "rug-cli 0.21.0"
+editor:
+  name: "jessitron.scattered-rugs.AddScalaPom"
+  group: "jessitron"
+  artifact: "scattered-rugs"
+  version: "0.1.0"
+  origin:
+    repo: "jessitron/scattered-rugs.git"
+    branch: "master"
+    sha: "9074aa8"
+  parameters:
+    - "group_id": "com.jessitron"
+    - "artifact_id": "org-dep-graph"
+
