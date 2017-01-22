@@ -119,7 +119,7 @@ object GraphViz {
       throw new RuntimeException("Failure running dot.")
     }
 
-   // Files.delete(dotFile)
+    Files.delete(dotFile)
 
     new File(pictureFile)
   }
