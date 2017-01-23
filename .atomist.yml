@@ -14,3 +14,16 @@ editor:
     - "group_id": "com.jessitron"
     - "artifact_id": "org-dep-graph"
 
+---
+kind: "operation"
+client: "rug-cli 0.21.0"
+editor:
+  name: "jessitron.scattered-rugs.BringInScalatest"
+  group: "jessitron"
+  artifact: "scattered-rugs"
+  version: "0.1.0"
+  origin:
+    repo: "jessitron/scattered-rugs.git"
+    branch: "master"
+    sha: "1f94cf6"
+
