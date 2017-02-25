@@ -14,7 +14,7 @@ object BuildScript {
   // this 'title' thing works on my terminal, dunno about yours
   val header =
     """#!/bin/bash
-      |set -x
+      |#  set -x
       |
       |function title {
       |    echo -ne "\033]0;"$*"\007"
@@ -80,7 +80,7 @@ object BuildScript {
          |if [[ "$$started" == "true" || "$$starting_project" == "$project" ]]
          |then
          |  started=true
-         |  echo "\\n  Now working on: $project\\n"
+         |  echo "\n  Now working on: $project\n"
          |  cd $project
          |  title "$project ($n/$total)"
          |  ${command}

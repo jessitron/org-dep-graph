@@ -93,7 +93,7 @@ object CheckGitStatus {
     if (branchLine == "## HEAD (no branch)") {
       GitRepo(projectDir, "HEAD", 0, 0, changes > 0)
     } else {
-      val branch = branchLine.substring(3).split("\\.").head
+      val branch = branchLine.substring(3).split("\\.\\.\\.").head
       val ahead: Int = if (branchLine.contains("ahead")) branchLine.split("ahead ")(1).split("[,\\]]").head.toInt else 0
       val behind: Int = if (branchLine.contains("behind")) branchLine.split("behind ")(1).split("\\]").head.toInt else 0
       GitRepo(projectDir, branch, ahead, behind, changes > 0)
