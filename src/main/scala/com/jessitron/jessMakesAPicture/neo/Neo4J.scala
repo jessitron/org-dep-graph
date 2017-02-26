@@ -1,5 +1,7 @@
 package com.jessitron.jessMakesAPicture.neo
 
+import java.util.Date
+
 import com.jessitron.jessMakesAPicture.git.GitHub
 import com.jessitron.jessMakesAPicture.maven.Maven.{ProjectName, Version}
 import com.jessitron.jessMakesAPicture.maven.Scope
@@ -11,8 +13,10 @@ object Neo4J {
 
   case class ProjectNode(name: ProjectName, version: Version, branch: GitHub.Branch) {
 
+    def now = new Date().toString
+
     def createSyntax(runId: Run, projectIds: Map[ProjectName, UniqueId])  : String =
-     s"""(${projectIds(name)}:Project { name: "$name", version: "$version", branch: "$branch", asOf: "$runId" })"""
+     s"""(${projectIds(name)}:Project { name: "$name", version: "$version", branch: "$branch", asOf: "$runId", created: "$now" } )"""
   }
 
   type ProjectNodeIdentifyingFactor = ProjectName
