@@ -74,3 +74,13 @@ sealed trait Scope
 case object Compile extends Scope
 case object Test extends Scope
 case object Provided extends Scope
+
+object Scope {
+  def fromString(s: String):Scope =
+    s match {
+      case "compile" => Compile
+      case "test" => Test
+      case "provided" => Provided
+      case other => throw new IllegalArgumentException(s"invalid scope: $other")
+    }
+}

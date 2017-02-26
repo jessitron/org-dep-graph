@@ -82,7 +82,9 @@ object MakeAPicture extends App {
   val localProjects = projects.collect{ case FoundProject(a, _) => a}
   val localProjectNames = localProjects.map(_.name)
 
-  val buildOrder = Linearize.tsort(edges.map { case dep => (dep.parent.name, dep.child.name) }).toList.reverse
+  val simpleEdges = edges.map { case dep => (dep.parent.name, dep.child.name) }
+
+  val buildOrder = Linearize.tsort(simpleEdges).toList.reverse
   println(s"Here is an order for building: ${buildOrder}")
   val buildThese = buildOrder.filter(localProjectNames.contains(_))
 

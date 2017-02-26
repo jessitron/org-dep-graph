@@ -11,12 +11,12 @@ object Neo4J {
   type UniqueId = String
   type Run = String
 
+  val creationDate = new Date().toString
+
   case class ProjectNode(name: ProjectName, version: Version, branch: GitHub.Branch) {
 
-    def now = new Date().toString
-
     def createSyntax(runId: Run, projectIds: Map[ProjectName, UniqueId])  : String =
-     s"""(${projectIds(name)}:Project { name: "$name", version: "$version", branch: "$branch", asOf: "$runId", created: "$now" } )"""
+     s"""(${projectIds(name)}:Project { name: "$name", version: "$version", branch: "$branch", asOf: "$runId", created: "$creationDate" } )"""
   }
 
   type ProjectNodeIdentifyingFactor = ProjectName
