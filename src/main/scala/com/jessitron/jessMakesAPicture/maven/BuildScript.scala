@@ -70,31 +70,36 @@ object BuildScript {
       val project = projectNameFunction(a)
       val command = commandFunction(a)
       s"""
-         |  echo "\n  Now working on: $project\n"
-         |  cd $project
-         |  title "$project ($n/$total)"
-         |  ${command}
+         |echo "\n  Now working on: $project\n"
+         |cd $project
+         |title "$project ($n/$total)"
+         |${command}
          |
-         |  if [ $$? -ne 0 ]
-         |  then
-         |    echo "Failure running '$command' in $project"
-         |    exit 1
-         |  fi
-         |  cd -
+         |if [ $$? -ne 0 ]
+         |then
+         |  echo "Failure running '$command' in $project"
+         |  exit 1
+         |fi
+         |cd -
      """.stripMargin
   }
 
   def createScriptToLinkLocalVersions(locationString: String,
                                       group: Maven.Group,
                                       deps: Seq[(String, String)], // (parent, child)
-                                      localProjects: Seq[InOrgProject]): Path = {
+                                      localProjects: Seq[InOrgProject],
+                                      baseProject: InOrgProject): Path = {
 
     val localVersionsByName = localProjects.map { case InOrgProject(name, version) => (name, version) }.toMap
+
+    val versionWithoutSnapshot = baseProject.version.replace("-SNAPSHOT", "")
+    val desiredBranch = s"${baseProject.name}-$versionWithoutSnapshot"
+
 
     val commandFromDep: ((String,String)) => Command = { case (parent, child) =>
       localVersionsByName.get(child) match {
         case Some(localVersion) =>
-          checkoutBranchAndUpdateDependency(group, child, localVersion)
+          checkoutBranch(desiredBranch) + updateDependency(group, child, localVersion)
         case None =>
           s"echo no local version of ${child}"
       }
@@ -108,15 +113,13 @@ object BuildScript {
     BuildScript.putInFile(s"$locationString/depend_on_local_versions", buildScriptFor[(String,String)](locationString, commandFromDep, deps, "use local dependencies", _._1).getBytes(StandardCharsets.UTF_8))
   }
 
-  private def checkoutBranchAndUpdateDependency(group: Maven.Group, childProject: Maven.ProjectName, localVersion: Version): String = {
-    val versionWithoutSnapshot = localVersion.replace("-SNAPSHOT", "")
-    val desiredBranch = s"${childProject}-$versionWithoutSnapshot"
+  private def checkoutBranch(desiredBranch: String): String = {
 
     val currentBranch = "$(git rev-parse --abbrev-ref HEAD"
 
     def exists(branch: String) = s"git rev-parse --verify $branch"
 
-    val beOnDesiredBranch = s"""if [[ "$currentBranch" != "$desiredBranch" ]] ; then
+    s"""if [[ "$currentBranch" != "$desiredBranch" ]] ; then
                                |   # We need to change branches.
                                |   # Does the desired branch exist?
                                |   if ${exists(desiredBranch)} ; then
@@ -133,10 +136,10 @@ object BuildScript {
                                |fi
                                |""".stripMargin
 
-    val useRugToUpdateVersion =
-      s"\nrug edit -R atomist-rugs:common-editors:ChangeDependencyVersion group_id=$group artifact_id=${childProject} new_version=${localVersion}"
-
-    beOnDesiredBranch + useRugToUpdateVersion
   }
+
+  private def updateDependency(group: Maven.Group, childProject: Maven.ProjectName, localVersion: Version): String =
+    s"\nrug edit -R atomist-rugs:common-editors:ChangeDependencyVersion group_id=$group artifact_id=${childProject} new_version=${localVersion}"
+
 
 }
