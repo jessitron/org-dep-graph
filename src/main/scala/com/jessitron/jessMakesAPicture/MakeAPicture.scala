@@ -10,14 +10,17 @@ import scala.annotation.tailrec
 
 object MakeAPicture extends App {
 
-  val Usage = "$0 [--fetch] <top-level project...>"
+  /* yes this is nonstandard sorry not sorry */
+  val Usage = "$0 [--fetch] [base=<bottom-level-project] <top-level project...>"
 
-  def processArgs(): (Seq[String], Boolean) = {
+  def processArgs(): (Seq[String], Boolean, Option[String]) = {
       var fetch = false
       var projects: Seq[String] = Seq()
+    var baseProject: Option[String] = None
     for (arg <- args) {
       arg match {
         case "--fetch" => fetch = true
+        case base if base.startsWith("base=") => baseProject = Some(base.substring(5))
         case other => projects = projects :+ other
       }
     }
@@ -26,11 +29,11 @@ object MakeAPicture extends App {
       System.err.println("No top-level project supplied")
     }
 
-    (projects, fetch)
+    (projects, fetch, baseProject)
   }
 
 
-  val (startingProjects, fetch) = processArgs()
+  val (startingProjects, fetch, baseProject) = processArgs()
   val GitHubOrgs = Seq("atomist","atomisthq")
   val MavenGroup = "com.atomist"
   val OutputName = "atomist"
@@ -82,7 +85,12 @@ object MakeAPicture extends App {
   val localProjects = projects.collect{ case FoundProject(a, _) => a}
   val localProjectNames = localProjects.map(_.name)
 
-  val simpleEdges = edges.map { case dep => (dep.parent.name, dep.child.name) }
+  /* If given a base project, build scripts only on the graph from there to the single top-level project */
+  val simpleEdges = baseProject match {
+    case None => edges.map { case dep => (dep.parent.name, dep.child.name) }
+    case Some(_) if startingProjects.size > 1 => ??? // not handled. not hard, also not needed
+    case Some(base) => neo.Queries.findConnectingEdges(startingProjects.head, base).map { case dep => (dep.parent, dep.child) }
+  }
 
   val buildOrder = Linearize.tsort(simpleEdges).toList.reverse
   println(s"Here is an order for building: ${buildOrder}")
