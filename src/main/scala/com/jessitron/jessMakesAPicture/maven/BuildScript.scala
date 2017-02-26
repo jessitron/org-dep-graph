@@ -22,17 +22,17 @@ object BuildScript {
       |
     """.stripMargin
 
-  def footer(command: Command, projects: Seq[ProjectName]) =
+  def footer(name: String, projects: Seq[ProjectName]) =
     s"""
-      |title "$command complete"
+      |title "$name complete"
       |
-      |echo "Finished running '$command' on ${projects.mkString(",")}"
+      |echo "Finished running '$name' on ${projects.mkString(",")}"
     """.stripMargin
 
 
   def createBuildScript(locationString: String, command: Command, scriptName: String, projects: Seq[ProjectName]): Path = {
 
-    putInFile(s"$locationString/$scriptName", buildScriptForProjects(command, projects).getBytes(StandardCharsets.UTF_8))
+    putInFile(s"$locationString/$scriptName", buildScriptForProjects(scriptName, command, projects).getBytes(StandardCharsets.UTF_8))
 
   }
 
@@ -53,11 +53,11 @@ object BuildScript {
     path
   }
 
-  private def buildScriptForProjects(command: Command, projects: Seq[ProjectName]) =
-    buildScriptFor[ProjectName]({ _ => command}, projects, command, identity)
+  private def buildScriptForProjects(scriptName: String, command: Command, projects: Seq[ProjectName]) =
+    buildScriptFor[ProjectName](scriptName, { _ => command}, projects, command, identity)
 
-  private def buildScriptFor[A](commandFunction: A => Command, projects: Seq[A], commandDescription: String, projectName: A => ProjectName) = {
-    header + projects.zipWithIndex.map(indexFromOne).map(buildOne(projectName, commandFunction, projects.length)).mkString("\n") + footer(commandDescription, projects.map(projectName))
+  private def buildScriptFor[A](scriptName: String, commandFunction: A => Command, projects: Seq[A], commandDescription: String, projectName: A => ProjectName) = {
+    header + projects.zipWithIndex.map(indexFromOne).map(buildOne(projectName, commandFunction, projects.length)).mkString("\n") + footer(scriptName, projects.map(projectName))
   }
 
   private def indexFromOne[A](zipped: (A, Int)): (A, Int) =
@@ -101,7 +101,7 @@ object BuildScript {
       iod => iod.parent.name
     }
 
-    BuildScript.putInFile(s"${locationString}/depend_on_local_versions", buildScriptFor(commandFromDep, deps, "use local dependencies", description).getBytes(StandardCharsets.UTF_8))
+    BuildScript.putInFile(s"${locationString}/depend_on_local_versions", buildScriptFor(locationString, commandFromDep, deps, "use local dependencies", description).getBytes(StandardCharsets.UTF_8))
   }
 
 }

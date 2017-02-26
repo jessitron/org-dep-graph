@@ -102,7 +102,9 @@ object MakeAPicture extends App {
     "install" -> "mvn install",
     "clean" -> "mvn clean",
     "fetch" -> "git fetch && ( git merge --ff-only || echo \"not able to fast-forward merge\" )",
-    "newbranch" -> "git checkout $1 2>/dev/null || git checkout -b $1").foreach { case (name, command) =>
+    "newbranch" -> "git checkout $1 2>/dev/null || git checkout -b $1",
+    "verify_on_master" -> """[[ $(git rev-parse --abbrev-ref HEAD) == "master" ]] && [[ -z "$(git status --porcelain)" ]]"""
+  ).foreach { case (name, command) =>
     val scriptName = s"${name}_all"
     val buildScript = BuildScript.createBuildScript(BuildFileLocation, command, scriptName, buildThese)
     println(s"There is a script for you in $buildScript")
