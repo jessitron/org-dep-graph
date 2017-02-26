@@ -20,13 +20,6 @@ object BuildScript {
       |    echo -ne "\033]0;"$*"\007"
       |}
       |
-      |if [ $1 == "from" ]
-      |then
-      |   starting_project=$2
-      |   started=false
-      |else
-      |   started=true
-      |fi
     """.stripMargin
 
   def footer(command: Command, projects: Seq[ProjectName]) =
@@ -77,9 +70,6 @@ object BuildScript {
       val project = projectNameFunction(a)
       val command = commandFunction(a)
       s"""
-         |if [[ "$$started" == "true" || "$$starting_project" == "$project" ]]
-         |then
-         |  started=true
          |  echo "\n  Now working on: $project\n"
          |  cd $project
          |  title "$project ($n/$total)"
@@ -91,7 +81,6 @@ object BuildScript {
          |    exit 1
          |  fi
          |  cd -
-         |fi
      """.stripMargin
   }
 
