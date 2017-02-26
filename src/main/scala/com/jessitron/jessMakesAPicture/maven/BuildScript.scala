@@ -4,7 +4,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.attribute.PosixFilePermissions
 import java.nio.file.{Files, Path, Paths}
 
-import com.jessitron.jessMakesAPicture.maven.Maven.{InOrgProject, IntraOrgDependency, ProjectName}
+import com.jessitron.jessMakesAPicture.maven.Maven.{InOrgProject, IntraOrgDependency, ProjectName, Version}
 
 
 object BuildScript {
@@ -84,24 +84,63 @@ object BuildScript {
      """.stripMargin
   }
 
-  def createScriptToLinkLocalVersions(locationString: String, group: Maven.Group, deps: Seq[IntraOrgDependency], localProjects: Seq[InOrgProject]): Path = {
+  def createScriptToLinkLocalVersions(locationString: String,
+                                      group: Maven.Group,
+                                      deps: Seq[IntraOrgDependency],
+                                      localProjects: Seq[InOrgProject]): Path = {
 
     val localVersionsByName = localProjects.map { case InOrgProject(name, version) => (name, version) }.toMap
 
     val commandFromDep: IntraOrgDependency => Command = { dep =>
       localVersionsByName.get(dep.child.name) match {
         case Some(localVersion) =>
-          s"rug edit -R atomist-rugs:common-editors:ChangeDependencyVersion group_id=$group artifact_id=${dep.child.name} new_version=${localVersion}"
+          if (localVersion == dep.child.version) {
+            s"echo 'Local ${dep.parent.name} already depends on ${dep.child.name} version ${dep.child.version}'"
+          } else {
+            checkoutBranchAndUpdateDependency(group, dep.child, localVersion)
+          }
         case None =>
           s"echo no local version of ${dep.child.name}"
       }
     }
+
 
     val description: IntraOrgDependency => ProjectName = {
       iod => iod.parent.name
     }
 
     BuildScript.putInFile(s"${locationString}/depend_on_local_versions", buildScriptFor(locationString, commandFromDep, deps, "use local dependencies", description).getBytes(StandardCharsets.UTF_8))
+  }
+
+  private def checkoutBranchAndUpdateDependency(group: Maven.Group, childProject: InOrgProject, localVersion: Version): String = {
+    val versionWithoutSnapshot = localVersion.replace("-SNAPSHOT", "")
+    val desiredBranch = s"${childProject.name}-$versionWithoutSnapshot"
+
+    val currentBranch = "$(git rev-parse --abbrev-ref HEAD"
+
+    def exists(branch: String) = s"git rev-parse --verify $branch"
+
+    val beOnDesiredBranch = s"""if [[ "$currentBranch" != "$desiredBranch" ]] ; then
+                               |   # We need to change branches.
+                               |   # Does the desired branch exist?
+                               |   if ${exists(desiredBranch)} ; then
+                               |      git checkout $desiredBranch || echo "Unable to check out $desiredBranch" && exit 1
+                               |   else
+                               |      # Does the desired branch exist on origin?
+                               |      if ${exists("origin/" + desiredBranch)} ; then
+                               |        git checkout $desiredBranch || echo "Unable to check out $desiredBranch" && exit 1
+                               |      else
+                               |      # create the branch
+                               |        git checkout -b $desiredBranch || echo "Unable to create branch $desiredBranch && exit 1
+                               |      fi
+                               |   fi
+                               |fi
+                               |""".stripMargin
+
+    val useRugToUpdateVersion =
+      s"\nrug edit -R atomist-rugs:common-editors:ChangeDependencyVersion group_id=$group artifact_id=${childProject.name} new_version=${localVersion}"
+
+    beOnDesiredBranch + useRugToUpdateVersion
   }
 
 }

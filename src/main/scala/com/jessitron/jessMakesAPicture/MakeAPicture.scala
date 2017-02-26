@@ -110,7 +110,7 @@ object MakeAPicture extends App {
     println(s"There is a script for you in $buildScript")
   }
 
-  val localVersionsScript = BuildScript.createScriptToLinkLocalVersions(BuildFileLocation, MavenGroup, edges, localProjects)
+  val localVersionsScript = BuildScript.createScriptToLinkLocalVersions(BuildFileLocation, MavenGroup, simpleEdges, localProjects)
   println(s"There is a script for you in $localVersionsScript")
 
 }
