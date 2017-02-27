@@ -24,8 +24,8 @@ object BuildScript {
 
   def footer(name: String, projects: Seq[ProjectName]) =
     s"""
-      |title "$name complete"
-      |
+       |title "$name complete"
+       |
       |echo "Finished running '$name' on ${projects.mkString(",")}"
     """.stripMargin
 
@@ -54,7 +54,7 @@ object BuildScript {
   }
 
   private def buildScriptForProjects(scriptName: String, command: Command, projects: Seq[ProjectName]) =
-    buildScriptFor[ProjectName](scriptName, { _ => command}, projects, command, identity)
+    buildScriptFor[ProjectName](scriptName, { _ => command }, projects, command, identity)
 
   private def buildScriptFor[A](scriptName: String, commandFunction: A => Command, projects: Seq[A], commandDescription: String, projectName: A => ProjectName) = {
     header + projects.zipWithIndex.map(indexFromOne).map(buildOne(projectName, commandFunction, projects.length)).mkString("\n") + footer(scriptName, projects.map(projectName))
@@ -62,7 +62,7 @@ object BuildScript {
 
   private def indexFromOne[A](zipped: (A, Int)): (A, Int) =
     zipped match {
-      case (a, i) => (a, i+1)
+      case (a, i) => (a, i + 1)
     }
 
   private def buildOne[A](projectNameFunction: A => ProjectName, commandFunction: A => Command, total: Int): PartialFunction[(A, Int), String] = {
@@ -77,7 +77,7 @@ object BuildScript {
          |
          |if [ $$? -ne 0 ]
          |then
-         |  echo "Failure running '$command' in $project"
+         |  echo "Failure in $project"
          |  exit 1
          |fi
          |cd -
@@ -96,13 +96,14 @@ object BuildScript {
     val desiredBranch = s"${baseProject.name}-$versionWithoutSnapshot"
 
 
-    val commandFromDep: ((String,String)) => Command = { case (parent, child) =>
-      localVersionsByName.get(child) match {
-        case Some(localVersion) =>
-          checkoutBranch(desiredBranch) + updateDependency(group, child, localVersion)
-        case None =>
-          s"echo no local version of ${child}"
-      }
+    val commandFromDep: ((String, String)) => Command = {
+      case (parent, child) =>
+        localVersionsByName.get(child) match {
+          case Some(localVersion) =>
+            checkoutBranch(desiredBranch) + updateDependency(group, child, localVersion)
+          case None =>
+            s"echo no local version of ${child}"
+        }
     }
 
 
@@ -110,31 +111,31 @@ object BuildScript {
       iod => iod.parent.name
     }
 
-    BuildScript.putInFile(s"$locationString/depend_on_local_versions", buildScriptFor[(String,String)](locationString, commandFromDep, deps, "use local dependencies", _._1).getBytes(StandardCharsets.UTF_8))
+    BuildScript.putInFile(s"$locationString/depend_on_local_versions", buildScriptFor[(String, String)]("depend_on_local_versions", commandFromDep, deps, "use local dependencies", _._1).getBytes(StandardCharsets.UTF_8))
   }
 
   private def checkoutBranch(desiredBranch: String): String = {
 
-    val currentBranch = "$(git rev-parse --abbrev-ref HEAD"
+    val currentBranch = "$(git rev-parse --abbrev-ref HEAD)"
 
     def exists(branch: String) = s"git rev-parse --verify $branch"
 
-    s"""if [[ "$currentBranch" != "$desiredBranch" ]] ; then
-                               |   # We need to change branches.
-                               |   # Does the desired branch exist?
-                               |   if ${exists(desiredBranch)} ; then
-                               |      git checkout $desiredBranch || echo "Unable to check out $desiredBranch" && exit 1
-                               |   else
-                               |      # Does the desired branch exist on origin?
-                               |      if ${exists("origin/" + desiredBranch)} ; then
-                               |        git checkout $desiredBranch || echo "Unable to check out $desiredBranch" && exit 1
-                               |      else
-                               |      # create the branch
-                               |        git checkout -b $desiredBranch || echo "Unable to create branch $desiredBranch && exit 1
-                               |      fi
-                               |   fi
-                               |fi
-                               |""".stripMargin
+    s"""# Are we on the correct branch? Any branch is OK really, but not master
+       |if [[ "$currentBranch" == "master" ]] ; then
+       |   # Does the desired branch exist?
+       |   if ${exists(desiredBranch)} ; then
+       |      git checkout $desiredBranch|| echo "Unable to check out $desiredBranch" && exit 1
+       |   else
+       |      # Does the desired branch exist on origin?
+       |      if ${exists("origin/" + desiredBranch)} ; then
+       |        git checkout $desiredBranch|| echo "Unable to check out $desiredBranch" && exit 1
+       |      else
+       |        # create the branch
+       |        git checkout -b $desiredBranch|| echo "Unable to create branch $desiredBranch" && exit 1
+       |      fi
+       |   fi
+       |fi
+       |""".stripMargin
 
   }
 
