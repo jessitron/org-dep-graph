@@ -99,7 +99,7 @@ object MakeAPicture extends App {
 
   Seq(
     "do" -> "$@",
-    "install" -> "mvn install",
+    "install" -> "mvn install $*",
     "clean" -> "mvn clean",
     "fetch" -> "git fetch && ( git merge --ff-only || echo \"not able to fast-forward merge\" )",
     "newbranch" -> "git checkout $1 2>/dev/null || git checkout -b $1",
