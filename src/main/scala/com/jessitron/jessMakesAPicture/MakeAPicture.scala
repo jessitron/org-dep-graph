@@ -7,6 +7,7 @@ import com.jessitron.jessMakesAPicture.maven.Maven.{InOrgProject, IntraOrgDepend
 import com.jessitron.jessMakesAPicture.neo.Neo4J
 
 import scala.annotation.tailrec
+import scala.util.control.NonFatal
 
 object MakeAPicture extends App {
 
@@ -14,8 +15,8 @@ object MakeAPicture extends App {
   val Usage = "$0 [--fetch] [base=<bottom-level-project] <top-level project...>"
 
   def processArgs(): (Seq[String], Boolean, Option[String]) = {
-      var fetch = false
-      var projects: Seq[String] = Seq()
+    var fetch = false
+    var projects: Seq[String] = Seq()
     var baseProject: Option[String] = None
     for (arg <- args) {
       arg match {
@@ -34,7 +35,7 @@ object MakeAPicture extends App {
 
 
   val (startingProjects, fetch, baseProject) = processArgs()
-  val GitHubOrgs = Seq("atomist","atomisthq")
+  val GitHubOrgs = Seq("atomist", "atomisthq")
   val MavenGroup = "com.atomist"
   val OutputName = "atomist"
   val BuildFileLocation = "bin/"
@@ -48,11 +49,18 @@ object MakeAPicture extends App {
     val repo = git.bringDown(dep)
     repo match {
       case Some(r) =>
-        val (iop, deps) = Maven.analyzePom(MavenGroup)(r.contents)
-        (FoundProject(iop, r), deps)
+        try {
+          val (iop, deps) = Maven.analyzePom(MavenGroup)(r.contents)
+          (FoundProject(iop, r), deps)
+        }
+        catch {
+          case NonFatal(e) => println(s"ERROR: can't analyze $dep for dependencies. ${e.getMessage}")
+            (FoundProject(Maven.unparsableProject(dep), r), Seq())
+        }
       case None => (UnfoundProject(dep), Seq())
     }
   }
+
   def findAllDependencies(startingProjects: Seq[ProjectName]): (Seq[CombinedProjectData], Seq[IntraOrgDependency]) = {
 
     def go(allDeps: Map[ProjectName, Seq[IntraOrgDependency]], allProjects: Seq[CombinedProjectData], investigate: List[ProjectName])
@@ -82,7 +90,7 @@ object MakeAPicture extends App {
 
   val n = Neo4J.makeAPicture(edges.map(Neo4JInterop.dependencyEdge), projects.map(Neo4JInterop.projectNode), runId)
 
-  val localProjects = projects.collect{ case FoundProject(a, _) => a}
+  val localProjects = projects.collect { case FoundProject(a, _) => a }
   val localProjectNames = localProjects.map(_.name)
 
   /* If given a base project, build scripts only on the graph from there to the single top-level project */
@@ -111,14 +119,12 @@ object MakeAPicture extends App {
   }
 
   if (baseProject.isDefined) {
-    val base = localProjects.find(_.name == baseProject.get).getOrElse(???)
+    val base = localProjects.find(_.name == baseProject.get).getOrElse(throw new RuntimeException(s"I can't find base project ${baseProject}"))
     val localVersionsScript = BuildScript.createScriptToLinkLocalVersions(BuildFileLocation, MavenGroup, simpleEdges, localProjects, base)
     println(s"There is a script for you in $localVersionsScript")
   }
 
 }
-
-
 
 
 object Linearize {
@@ -127,12 +133,16 @@ object Linearize {
   def tsort[A](edges: Traversable[(A, A)]): Iterable[A] = {
     @tailrec
     def tsort(toPreds: Map[A, Set[A]], done: Iterable[A]): Iterable[A] = {
-      val (noPreds, hasPreds) = toPreds.partition { _._2.isEmpty }
+      val (noPreds, hasPreds) = toPreds.partition {
+        _._2.isEmpty
+      }
       if (noPreds.isEmpty) {
         if (hasPreds.isEmpty) done else sys.error(hasPreds.toString)
       } else {
         val found = noPreds.keys
-        tsort(hasPreds.mapValues { _ -- found }, done ++ found)
+        tsort(hasPreds.mapValues {
+          _ -- found
+        }, done ++ found)
       }
     }
 

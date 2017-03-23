@@ -1,5 +1,6 @@
 package com.jessitron.jessMakesAPicture.maven
 
+import java.io.File
 import java.nio.charset.StandardCharsets
 import java.nio.file.attribute.PosixFilePermissions
 import java.nio.file.{Files, Path, Paths}
@@ -31,9 +32,17 @@ object BuildScript {
 
 
   def createBuildScript(locationString: String, command: Command, scriptName: String, projects: Seq[ProjectName]): Path = {
+    createIfNotExists(locationString)
 
     putInFile(s"$locationString/$scriptName", buildScriptForProjects(scriptName, command, projects).getBytes(StandardCharsets.UTF_8))
 
+  }
+
+  private def createIfNotExists(locationString: String): Unit = {
+    val dir = new File(locationString)
+    if (!dir.exists()) {
+      dir.mkdir()
+    }
   }
 
   private def putInFile(locationString: String, newContent: Array[Byte]): Path = {

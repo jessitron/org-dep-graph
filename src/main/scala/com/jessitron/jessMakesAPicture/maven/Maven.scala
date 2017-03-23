@@ -60,11 +60,14 @@ object Maven {
     val parentVersion = projectVersion(projectXml)
     val parentName = (projectXml \ "artifactId").text
     InOrgProject(parentName, parentVersion)
-
   }
 
   private def projectVersion(pomXML: Elem): Version = {
     (pomXML \ "version").text
+  }
+
+  def unparsableProject(name: ProjectName): InOrgProject = {
+    InOrgProject(name, "UNKNOWN")
   }
 
 
