@@ -21,7 +21,7 @@ object Maven {
 
 
     val deps = projectXml \ "dependencies" \ "dependency"
-    val intraOrgDeps = deps.filter(node => (node \ "groupId").text == groupId)
+    val intraOrgDeps = deps.filter(node => (node \ "groupId").text.startsWith(groupId))
 
     def interpretDependencyNode(node: Node): IntraOrgDependency = {
       val childVersion = substituteProperty(properties, (node \ "version").text)
